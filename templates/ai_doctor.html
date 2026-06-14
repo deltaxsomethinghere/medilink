@@ -1,0 +1,281 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "ai_doctor" %}
+{% block title %}AI Doctor | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<style>
+  .aid-layout { display:grid; grid-template-columns:1fr 360px; gap:0; height:calc(100vh - 124px); }
+  .chat-panel { display:flex; flex-direction:column; background:#f8fafc; }
+  .chat-header { background:#fff; border-bottom:1px solid #e5e7eb; padding:1rem 1.5rem; display:flex; align-items:center; gap:.75rem; flex-shrink:0; }
+  .ai-avatar { width:40px; height:40px; background:linear-gradient(135deg,#6366f1,#8b5cf6); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+  .chat-title { font-size:1rem; font-weight:700; color:#111827; margin:0; }
+  .chat-sub { font-size:.78rem; color:#6b7280; margin:0; }
+  .chat-messages { flex:1; overflow-y:auto; padding:1.25rem; display:flex; flex-direction:column; gap:.75rem; }
+  .msg { max-width:78%; display:flex; flex-direction:column; }
+  .msg.user { align-self:flex-end; }
+  .msg.ai { align-self:flex-start; }
+  .msg-bubble { padding:.75rem 1rem; border-radius:14px; font-size:.88rem; line-height:1.6; }
+  .msg.user .msg-bubble { background:#6366f1; color:#fff; border-bottom-right-radius:4px; }
+  .msg.ai .msg-bubble { background:#fff; color:#1f2937; border:1px solid #e5e7eb; border-bottom-left-radius:4px; }
+  .msg-time { font-size:.72rem; color:#9ca3af; margin-top:.25rem; }
+  .msg.user .msg-time { text-align:right; }
+  .med-suggest { background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:.75rem 1rem; margin-top:.5rem; }
+  .med-suggest-title { font-size:.78rem; font-weight:700; color:#166534; margin-bottom:.5rem; }
+  .med-item { display:flex; align-items:center; gap:.5rem; padding:.4rem .5rem; background:#fff; border-radius:7px; margin-bottom:.35rem; font-size:.82rem; }
+  .med-item-name { font-weight:600; color:#111827; flex:1; }
+  .med-item-price { color:#6366f1; font-weight:700; }
+  .med-order-btn { padding:.3rem .65rem; background:#6366f1; color:#fff; border:none; border-radius:6px; font-size:.75rem; cursor:pointer; font-weight:600; }
+  .chat-input-bar { background:#fff; border-top:1px solid #e5e7eb; padding:1rem 1.25rem; flex-shrink:0; }
+  .input-row { display:flex; gap:.5rem; }
+  .input-row textarea { flex:1; padding:.65rem .9rem; border:1px solid #e5e7eb; border-radius:10px; font-size:.9rem; font-family:inherit; resize:none; outline:none; min-height:44px; max-height:120px; }
+  .input-row textarea:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.1); }
+  .send-btn { padding:.65rem 1.1rem; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:.9rem; cursor:pointer; font-weight:600; align-self:flex-end; }
+  .send-btn:disabled { background:#d1d5db; cursor:not-allowed; }
+  .disclaimer { font-size:.72rem; color:#9ca3af; text-align:center; margin-top:.5rem; }
+  .info-panel { border-left:1px solid #e5e7eb; background:#fff; padding:1.25rem; overflow-y:auto; }
+  .info-section { margin-bottom:1.25rem; }
+  .info-title { font-size:.82rem; font-weight:700; color:#374151; margin:0 0 .6rem; }
+  .symptom-chip { display:inline-block; background:#ede9fe; color:#6d28d9; font-size:.75rem; padding:3px 9px; border-radius:20px; margin:.2rem .2rem 0 0; cursor:pointer; }
+  .symptom-chip:hover { background:#ddd6fe; }
+  .quick-q { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:.5rem .75rem; margin-bottom:.4rem; font-size:.8rem; color:#374151; cursor:pointer; }
+  .quick-q:hover { background:#f3f4f6; border-color:#d1d5db; }
+  .warn-box { background:#fef3c7; border:1px solid #fcd34d; border-radius:8px; padding:.6rem .85rem; font-size:.78rem; color:#92400e; line-height:1.5; }
+
+  /* Consent modal */
+  .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .modal-card { background:#fff; border-radius:16px; max-width:520px; width:100%; overflow:hidden; }
+  .modal-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:1.5rem; color:#fff; text-align:center; }
+  .modal-header h2 { font-size:1.15rem; font-weight:700; margin:0 0 .3rem; }
+  .modal-header p { font-size:.82rem; opacity:.85; margin:0; }
+  .modal-body { padding:1.5rem; }
+  .modal-points { list-style:none; padding:0; margin:0 0 1.25rem; }
+  .modal-points li { display:flex; align-items:flex-start; gap:.6rem; font-size:.85rem; color:#374151; margin-bottom:.6rem; line-height:1.5; }
+  .modal-points li span.icon { font-size:1rem; flex-shrink:0; }
+  .modal-check { display:flex; align-items:flex-start; gap:.6rem; margin-bottom:1rem; cursor:pointer; }
+  .modal-check input { width:17px; height:17px; margin-top:2px; accent-color:#6366f1; flex-shrink:0; }
+  .modal-check span { font-size:.85rem; color:#374151; line-height:1.5; }
+  .modal-btn { width:100%; padding:.875rem; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:.95rem; font-weight:700; cursor:pointer; }
+  .modal-btn:disabled { background:#d1d5db; cursor:not-allowed; }
+  .modal-cancel { width:100%; padding:.65rem; background:none; border:none; color:#9ca3af; font-size:.85rem; cursor:pointer; margin-top:.5rem; }
+
+  /* ── Mobile Responsive ── */
+  @media(max-width:820px) {
+    .aid-layout { grid-template-columns:1fr; height:auto; }
+    .chat-panel { height:calc(100vh - 180px); min-height:400px; }
+    .info-panel { border-left:none; border-top:1px solid #e5e7eb; padding:1rem; max-height:none; }
+    .chat-messages { padding:.85rem; }
+    .chat-input-bar { padding:.75rem; }
+    .input-row textarea { font-size:.85rem; }
+    .msg { max-width:88%; }
+    .msg-bubble { font-size:.82rem; padding:.6rem .85rem; }
+    .modal-body { padding:1rem; }
+    .modal-points li { font-size:.78rem; }
+    .modal-header { padding:1.25rem; }
+    .modal-header h2 { font-size:1rem; }
+  }
+  @media(max-width:480px) {
+    .chat-header { padding:.75rem 1rem; }
+    .chat-title { font-size:.88rem; }
+    .chat-sub { font-size:.7rem; }
+    .ai-avatar { width:34px; height:34px; font-size:1rem; }
+    .symptom-chip { font-size:.7rem; padding:2px 7px; }
+    .quick-q { font-size:.75rem; padding:.4rem .6rem; }
+    .med-item { flex-wrap:wrap; gap:.3rem; }
+    .med-order-btn { width:100%; text-align:center; margin-top:.25rem; }
+  }
+</style>
+
+<!-- Consent Modal -->
+<div class="modal-backdrop" id="consent-modal" style="{{ 'display:none' if has_consent else '' }}">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div style="font-size:2rem;margin-bottom:.4rem;">🤖</div>
+      <h2>ยืนยันการใช้งาน AI Doctor</h2>
+      <p>กรุณาอ่านและยืนยันก่อนเริ่มบทสนทนา</p>
+    </div>
+    <div class="modal-body">
+      <ul class="modal-points">
+        <li><span class="icon">⚕️</span> AI Doctor ให้คำแนะนำเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรคอย่างเป็นทางการ</li>
+        <li><span class="icon">💊</span> AI แนะนำยา OTC ได้ แต่ยาที่ต้องใบสั่งแพทย์ต้องพบหมอจริง</li>
+        <li><span class="icon">🆘</span> หากอาการฉุกเฉิน ให้โทร <strong>1669</strong> ทันที ไม่ใช้ AI</li>
+        <li><span class="icon">🔒</span> การสนทนาถูกเก็บรักษาตาม PDPA และไม่เปิดเผยต่อบุคคลภายนอก</li>
+        <li><span class="icon">📊</span> ความแม่นยำของ AI อยู่ที่ ~75% ขึ้นอยู่กับข้อมูลที่ระบุ</li>
+      </ul>
+      <label class="modal-check">
+        <input type="checkbox" id="modal-consent-check" onchange="document.getElementById('modal-btn').disabled=!this.checked">
+        <span>ฉันเข้าใจข้อจำกัดของ AI Doctor และยินยอมใช้งานภายใต้เงื่อนไขข้างต้น</span>
+      </label>
+      <button class="modal-btn" id="modal-btn" disabled onclick="giveAiConsent()">
+        ✅ ยืนยันและเริ่มใช้งาน AI Doctor
+      </button>
+      <button class="modal-cancel" onclick="window.history.back()">ย้อนกลับ</button>
+    </div>
+  </div>
+</div>
+
+<div class="aid-layout">
+  <!-- Chat -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="ai-avatar">🤖</div>
+      <div>
+        <p class="chat-title">AI Doctor</p>
+        <p class="chat-sub">ผู้ช่วยสุขภาพเบื้องต้น • ตอบภาษาไทย</p>
+      </div>
+    </div>
+    <div class="chat-messages" id="ai-chat-messages">
+      <div class="msg ai">
+        <div class="msg-bubble">สวัสดีครับ ผมคือ AI Doctor ผู้ช่วยด้านสุขภาพเบื้องต้น 👋<br><br>บอกอาการหรือความกังวลด้านสุขภาพได้เลยครับ ผมจะช่วยประเมินเบื้องต้นและแนะนำยา OTC ที่เหมาะสม<br><br>⚕️ <em>ผมให้คำแนะนำเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค</em></div>
+        <div class="msg-time">เริ่มต้น</div>
+      </div>
+    </div>
+    <div class="chat-input-bar">
+      <div class="input-row">
+        <textarea id="ai-chat-input" placeholder="อธิบายอาการของคุณ..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiDoctorMessage()}"></textarea>
+        <button class="send-btn" id="ai-send-btn" onclick="sendAiDoctorMessage()">ส่ง ↑</button>
+      </div>
+      <p class="disclaimer">⚕️ AI ให้คำแนะนำเบื้องต้น ไม่ใช่การวินิจฉัยโรค • ฉุกเฉิน: โทร 1669</p>
+    </div>
+  </div>
+
+  <!-- Info panel -->
+  <div class="info-panel">
+    <div class="info-section">
+      <div class="info-title">⚡ อาการที่พบบ่อย</div>
+      {% for s in ["ปวดหัว","ไข้","ไอ","เจ็บคอ","ท้องเสีย","คลื่นไส้","ปวดท้อง","น้ำมูกไหล","ผื่นคัน","นอนไม่หลับ"] %}
+      <span class="symptom-chip" onclick="insertAiSymptom('{{ s }}')">{{ s }}</span>
+      {% endfor %}
+    </div>
+    <div class="info-section">
+      <div class="info-title">💬 คำถามที่พบบ่อย</div>
+      {% for q in ["ยา Paracetamol กินวันละกี่เม็ด?","ปวดหัวข้างเดียวควรกินยาอะไร?","เด็กมีไข้ควรทำอย่างไรก่อน?","แพ้ยา Penicillin ใช้ยาอะไรแทนได้?"] %}
+      <div class="quick-q" onclick="askAiQuestion('{{ q }}')">{{ q }}</div>
+      {% endfor %}
+    </div>
+    <div class="warn-box">
+      <strong>⚠️ อาการฉุกเฉิน</strong> ที่ต้องพบแพทย์ทันที: เจ็บหน้าอก หายใจไม่ออก ชัก หมดสติ อาการเกิดขึ้นเร็วและรุนแรง<br><br>โทร <strong>1669</strong>
+    </div>
+  </div>
+</div>
+
+<script>
+let chatHistory = [];
+const hasConsent = {{ 'true' if has_consent else 'false' }};
+
+async function giveAiConsent() {
+  const btn = document.getElementById('modal-btn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  const r = await fetch('/api/consent/ai-doctor', { method: 'POST' });
+  const d = await r.json();
+  if (d.ok) {
+    document.getElementById('consent-modal').style.display = 'none';
+  } else {
+    btn.disabled = false; btn.textContent = '✅ ยืนยันและเริ่มใช้งาน AI Doctor';
+  }
+}
+
+function insertAiSymptom(s) {
+  const ta = document.getElementById('ai-chat-input');
+  ta.value = ta.value ? ta.value + ' ' + s : s;
+  ta.focus();
+}
+
+function askAiQuestion(q) {
+  document.getElementById('ai-chat-input').value = q;
+  sendAiDoctorMessage();
+}
+
+function escapeAiHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+  })[char]);
+}
+
+function appendAiMessage(role, text, medicines=[]) {
+  const container = document.getElementById('ai-chat-messages');
+  const now = new Date().toLocaleTimeString('th-TH', {hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
+
+  let inner = `<div class="msg-bubble">${escapeAiHtml(text).replace(/\n/g,'<br>')}</div>`;
+  if (medicines && medicines.length) {
+    inner += `<div class="med-suggest"><div class="med-suggest-title">💊 ยาที่แนะนำในระบบ:</div>`;
+    medicines.forEach(m => {
+      inner += `<div class="med-item">
+        <span class="med-item-name">${escapeAiHtml(m.name)}${m.dosage && !m.name.includes(m.dosage) ? ' ' + escapeAiHtml(m.dosage) : ''}</span>
+        <span class="med-item-price">฿${Number(m.price).toFixed(0)}</span>
+        <button class="med-order-btn" onclick="addAiMedicineToCart(${Number(m.id)},${Number(m.pharmacy_id)},this)">เพิ่มลงตะกร้า</button>
+      </div>`;
+    });
+    inner += `</div>`;
+  }
+  inner += `<div class="msg-time">${now}</div>`;
+  div.innerHTML = inner;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendAiDoctorMessage() {
+  const ta = document.getElementById('ai-chat-input');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  const btn = document.getElementById('ai-send-btn');
+  btn.disabled = true;
+
+  const priorHistory = chatHistory.slice(-6);
+  appendAiMessage('user', text);
+  chatHistory.push({role:'user', content: text});
+
+  // Typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'msg ai';
+  typing.id = 'typing';
+  typing.innerHTML = '<div class="msg-bubble" style="color:#9ca3af">AI กำลังคิด...</div>';
+  document.getElementById('ai-chat-messages').appendChild(typing);
+  document.getElementById('ai-chat-messages').scrollTop = 99999;
+
+  try {
+    const r = await fetch('/api/ai/doctor-chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ message: text, history: priorHistory })
+    });
+    const d = await r.json();
+    document.getElementById('typing')?.remove();
+
+    if (r.status === 403 && d.message === 'CONSENT_REQUIRED') {
+      document.getElementById('consent-modal').style.display = 'flex';
+      return;
+    }
+
+    const reply = d.reply || d.message || 'ขออภัย เกิดข้อผิดพลาด';
+    appendAiMessage('ai', reply, d.recommended_medicines || []);
+    chatHistory.push({role:'assistant', content: reply});
+  } catch(e) {
+    document.getElementById('typing')?.remove();
+    appendAiMessage('ai', '⚠️ ระบบขัดข้อง กรุณาลองใหม่');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function addAiMedicineToCart(medicineId, pharmacyId, btn) {
+  btn.disabled = true;
+  btn.textContent = 'กำลังเพิ่ม...';
+  const r = await fetch('/api/medicine-cart/add', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ medicine_id: medicineId, pharmacy_id: pharmacyId, quantity: 1 })
+  });
+  const d = await r.json();
+  if (r.ok) {
+    btn.textContent = '✅ เพิ่มแล้ว';
+    setTimeout(() => { window.location.href = d.cart_url || '/cart'; }, 500);
+  } else {
+    alert(d.message || 'เกิดข้อผิดพลาด');
+    btn.disabled = false;
+    btn.textContent = 'เพิ่มลงตะกร้า';
+  }
+}
+</script>
+{% endblock dashboard_content %}

@@ -1,0 +1,33 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "doctors" %}
+{% block title %}ค้นหาแพทย์ | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<section class="dashboard-heading">
+  <div><span class="clinical-kicker">Doctor discovery</span><h1>ค้นหาและนัดหมายแพทย์</h1><p>เลือกตามความเชี่ยวชาญ วันที่ว่าง และรีวิวจากผู้ป่วย</p></div>
+</section>
+<form class="filter-bar" method="get">
+  <label>ความเชี่ยวชาญ
+    <select name="specialty"><option value="">ทั้งหมด</option>{% for item in specialties %}<option value="{{ item }}" {% if item == selected_specialty %}selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+  </label>
+  <label>วันที่ต้องการ<input type="date" name="date" value="{{ selected_date }}"></label>
+  <button class="primary-button" type="submit">ค้นหาแพทย์</button>
+</form>
+<section class="market-grid">
+  {% for card in doctor_cards %}
+  <article class="market-card">
+    <div class="product-visual">DR</div>
+    <div class="market-card-body">
+      <span class="card-eyebrow">{{ card.doctor.specialty or 'แพทย์ทั่วไป' }}</span>
+      <h2 style="font-size:1.05rem;margin:.35rem 0;">{{ card.doctor.name }}</h2>
+      <p style="color:var(--muted);font-size:.8rem;min-height:38px;">{{ card.doctor.hospital or 'MediLink Medical Network' }}</p>
+      <div style="display:flex;justify-content:space-between;margin:.8rem 0;font-size:.78rem;">
+        <span style="color:#d97706;">★ {{ card.average or 'ใหม่' }} ({{ card.count }})</span>
+        <span style="color:#059669;">ว่าง {{ card.next_date }}</span>
+      </div>
+      <a class="primary-button" href="{{ url_for('doctor_detail', doctor_id=card.doctor.id) }}" style="display:block;text-align:center;">ดูโปรไฟล์และนัดหมาย</a>
+    </div>
+  </article>
+  {% else %}<p>ไม่พบแพทย์ตามเงื่อนไขที่เลือก</p>{% endfor %}
+</section>
+{% endblock %}
+

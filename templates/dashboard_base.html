@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+{% block body_class %}clinical-body{% endblock %}
+
+{% block head %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<div class="clinical-shell">
+  <aside class="clinical-sidebar" id="clinical-sidebar">
+    <a class="clinical-brand" href="{{ url_for('dashboard') }}">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" /></svg>
+      </span>
+      <span>Medi<span>Link AI</span></span>
+    </a>
+
+    <div class="role-card">
+      <span class="role-avatar">
+        {% if current_user.role == "DOCTOR" %}DR
+        {% elif current_user.role == "PHARMACY" %}ภก
+        {% elif current_user.role == "ADMIN" %}AD
+        {% else %}{{ current_user.name[:2] }}{% endif %}
+      </span>
+      <div>
+        <strong>{{ current_user.name }}</strong>
+        <span>
+          {% if current_user.role == "DOCTOR" %}แพทย์ผู้ดูแล
+          {% elif current_user.role == "PHARMACY" %}ผู้ดูแลร้านขายยา
+          {% elif current_user.role == "ADMIN" %}ผู้ดูแลระบบ
+          {% else %}ผู้ป่วย{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <nav class="clinical-nav" aria-label="เมนูหลัก">
+      <p>พื้นที่ทำงาน</p>
+
+      {% if current_user.role == "PATIENT" %}
+        <a href="{{ url_for('dashboard') }}" class="{% if active_page == 'patient' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></svg>
+          แดชบอร์ด
+        </a>
+        <a href="{{ url_for('doctors_page') }}" class="{% if active_page == 'doctors' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0M19 3v6M16 6h6"/></svg>
+          ค้นหาแพทย์
+        </a>
+        <a href="{{ url_for('shop_page') }}" class="{% if active_page == 'shop' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v10h12V10M8 4h8l2 6H6l2-6Z"/></svg>
+          ร้านสุขภาพ
+        </a>
+        <a href="{{ url_for('cart_page') }}" class="{% if active_page == 'cart' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.5 11h10l2-7H7"/></svg>
+          ตะกร้า
+          {% if cart_count %}<span class="nav-count">{{ cart_count }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('order_history') }}" class="{% if active_page == 'orders' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z"/><path d="M9 7h6M9 11h6"/></svg>
+          ประวัติคำสั่งซื้อ
+        </a>
+        <a href="{{ url_for('medicine_finder') }}" class="{% if active_page == 'medicine_finder' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg>
+          ค้นหายาใกล้ฉัน
+        </a>
+        <a href="{{ '/history' }}" class="{% if active_page == 'history' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          ประวัติการรักษา
+        </a>
+        <a href="{{ url_for('ai_doctor_page') }}" class="{% if active_page == 'ai_doctor' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 4a3 3 0 1 1-3 3 3 3 0 0 1 3-3zm0 14a8 8 0 0 1-6.22-3A6 6 0 0 1 12 14a6 6 0 0 1 6.22 3A8 8 0 0 1 12 20z"/></svg>
+          AI Doctor
+          <span style="font-size:9px;background:#6366f1;color:#fff;padding:1px 5px;border-radius:4px;margin-left:2px;">AI</span>
+        </a>
+      {% elif current_user.role == "DOCTOR" %}
+        <a href="{{ url_for('doctor_dashboard') }}" class="{% if active_page == 'doctor' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M12 2v6M9 5h6" /><path d="M5 10v4a7 7 0 0 0 14 0v-4" /><circle cx="19" cy="7" r="2" /></svg>
+          ศูนย์ดูแลผู้ป่วย
+        </a>
+        <a href="{{ url_for('medicine_finder') }}" class="{% if active_page == 'medicine_finder' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35M11 8v6M8 11h6"/></svg>
+          ค้นหายาใกล้คนไข้
+        </a>
+        <a href="{{ '/history' }}" class="{% if active_page == 'history' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          ประวัติเคส
+        </a>
+      {% elif current_user.role == "PHARMACY" %}
+        <a href="{{ url_for('pharmacy_dashboard') }}" class="{% if active_page == 'pharmacy' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M4 10h16M6 10v10h12V10M8 4h8l2 6H6l2-6Z" /></svg>
+          จัดการร้านขายยา
+        </a>
+      {% elif current_user.role == "ADMIN" %}
+        <a href="{{ url_for('admin_dashboard') }}" class="{% if active_page == 'admin' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+          จัดการระบบ
+        </a>
+      {% endif %}
+
+      <p>การดูแล</p>
+      <a href="#consultations" id="nav-appointments">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></svg>
+        {% if current_user.role == "DOCTOR" %}การปรึกษา{% else %}การนัดหมาย{% endif %}
+      </a>
+      <a href="#" id="nav-messages">
+        <svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /></svg>
+        ข้อความ
+        <span class="nav-count" id="nav-msg-badge" style="display:none;">●</span>
+      </a>
+    </nav>
+
+    <div class="privacy-card">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg>
+      <div><strong>ระบบปกป้องข้อมูล</strong><span>Real-time · Secured</span></div>
+    </div>
+
+    <a class="logout-link" href="{{ url_for('logout') }}">
+      <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /></svg>
+      ออกจากระบบ
+    </a>
+  </aside>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="clinical-main">
+    <header class="clinical-topbar">
+      <button class="mobile-menu" type="button" aria-label="เปิดเมนู"
+              aria-controls="clinical-sidebar" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+      </button>
+      <div class="system-status">
+        <span id="connection-dot" style="background:#f59e0b;"></span>
+        <span id="connection-text">กำลังเชื่อมต่อ...</span>
+      </div>
+      <div class="topbar-actions" style="display:flex;align-items:center;gap:.5rem;">
+        <!-- Notification Bell -->
+        <div style="position:relative;">
+          <button class="top-icon" type="button" aria-label="การแจ้งเตือน" id="notif-btn" onclick="toggleNotifPanel()" style="position:relative;">
+            <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>
+            <span id="notif-badge" style="display:none;position:absolute;top:3px;right:3px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;align-items:center;justify-content:center;">0</span>
+          </button>
+          <!-- Notification dropdown -->
+          <div id="notif-panel" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:9000;overflow:hidden;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid #f3f4f6;">
+              <strong style="font-size:.88rem;">การแจ้งเตือน</strong>
+              <button onclick="readAllNotifs()" style="font-size:.72rem;color:#6366f1;background:none;border:none;cursor:pointer;">อ่านทั้งหมด</button>
+            </div>
+            <div id="notif-list" style="max-height:360px;overflow-y:auto;"></div>
+          </div>
+        </div>
+        <!-- Profile avatar -->
+        <a href="/profile" title="โปรไฟล์ของฉัน" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;font-weight:700;text-decoration:none;">
+          {{ current_user.name[0] if current_user else 'U' }}
+        </a>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      {% block dashboard_content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- ── Chat Panel (Slide-in) ───────────────────────────────────────────── -->
+<div id="chat-panel" style="display:none; position:fixed; right:0; top:0; width:380px; height:100vh; background:white; box-shadow:-4px 0 20px rgba(0,0,0,0.12); z-index:9999; flex-direction:column;">
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed); padding:1rem 1.25rem; color:white; display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:.75rem;">
+      <span style="background:rgba(255,255,255,.25); width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem;" id="chat-avatar">DR</span>
+      <div>
+        <div style="font-weight:600; font-size:.95rem;" id="chat-title">แชท</div>
+        <div style="font-size:.75rem; opacity:.85;" id="chat-subtitle">—</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.4rem;">
+      {% if current_user.role == "DOCTOR" %}
+      <button onclick="prescribeFromChat()" style="border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:.35rem .65rem;background:rgba(255,255,255,.15);color:white;font-size:.72rem;cursor:pointer;">จ่ายยา</button>
+      <button onclick="completeFromChat()" style="border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:.35rem .65rem;background:rgba(255,255,255,.15);color:white;font-size:.72rem;cursor:pointer;">จบเคส</button>
+      {% endif %}
+      <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer; line-height:1;">×</button>
+    </div>
+  </div>
+
+  <div id="chat-messages" style="flex:1; overflow-y:auto; padding:1rem; background:#f9fafb; display:flex; flex-direction:column; gap:.6rem;"></div>
+
+  <div style="padding:.75rem 1rem; border-top:1px solid #e5e7eb; background:white; display:flex; gap:.5rem; align-items:center;">
+    <input id="chat-input" type="text" placeholder="พิมพ์ข้อความ..." onkeydown="if(event.key==='Enter') sendMsg()"
+           style="flex:1; border:1px solid #d1d5db; border-radius:9999px; padding:.5rem 1rem; font-size:.875rem; outline:none;">
+    <button onclick="sendMsg()" style="background:#4f46e5; color:white; border:none; border-radius:50%; width:36px; height:36px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+      <svg viewBox="0 0 24 24" style="width:16px; height:16px; fill:none; stroke:white; stroke-width:2; transform:rotate(45deg)"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    </button>
+  </div>
+</div>
+<div id="chat-overlay" onclick="closeChat()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:9998;"></div>
+
+{% if current_user.role == "PATIENT" %}
+<button class="gemini-fab" type="button" onclick="toggleGeminiChat()" aria-label="เปิด Gemini assistant">
+  <span>AI</span> ถาม Gemini
+</button>
+<section class="gemini-chat" id="gemini-chat" aria-label="Gemini health assistant">
+  <header>
+    <div><strong>Gemini Assistant</strong><small>ช่วยเลือกแพทย์และตอบคำถามทั่วไป</small></div>
+    <button type="button" onclick="toggleGeminiChat()">×</button>
+  </header>
+  <div class="gemini-messages" id="gemini-messages">
+    <div class="gemini-bubble assistant">สวัสดีค่ะ ฉันช่วยแนะนำประเภทแพทย์และวิธีใช้ MediLink ได้ แต่ไม่สามารถวินิจฉัยโรคหรือสั่งยาแทนแพทย์ได้</div>
+  </div>
+  <div class="gemini-input">
+    <input id="gemini-input" placeholder="เช่น เจ็บคอควรจองหมอประเภทไหน?" onkeydown="if(event.key==='Enter') sendGeminiMessage()">
+    <button type="button" onclick="sendGeminiMessage()">ส่ง</button>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// ── SocketIO setup ────────────────────────────────────────────────────────
+const socket = io({ transports: ['websocket', 'polling'] });
+const ME_ID  = {{ current_user.id }};
+const ME_ROLE = "{{ current_user.role }}";
+let notifCount = 0;
+let currentConsId = null;
+
+socket.on('connect', () => {
+  document.getElementById('connection-dot').style.background  = '#10b981';
+  document.getElementById('connection-text').textContent = 'ระบบให้บริการตามปกติ';
+});
+socket.on('disconnect', () => {
+  document.getElementById('connection-dot').style.background  = '#ef4444';
+  document.getElementById('connection-text').textContent = 'ขาดการเชื่อมต่อ';
+});
+
+// ── Notifications ──────────────────────────────────────────────────────────
+function bumpNotif(msg) {
+  notifCount++;
+  const badge = document.getElementById('notif-badge');
+  badge.style.display = 'flex';
+  badge.textContent   = notifCount;
+  showToast(msg);
+}
+
+socket.on('new_consultation', (d) => {
+  if (ME_ROLE === 'DOCTOR') {
+    bumpNotif(`🆕 ผู้ป่วยใหม่: ${d.patient_name}`);
+    addPendingRow(d);
+  }
+});
+
+socket.on('consultation_accepted', (d) => {
+  if (ME_ROLE === 'PATIENT') {
+    bumpNotif(`✅ หมอ ${d.doctor_name} รับเคสของคุณแล้ว!`);
+    refreshConsultations();
+  }
+});
+
+socket.on('prescription_ready', (d) => {
+  if (ME_ROLE === 'PATIENT') {
+    bumpNotif(`แพทย์จ่ายยาให้คุณแล้ว กรุณาเลือกร้านและวิธีรับยา`);
+    window.location.href = `/dashboard?prescription=${encodeURIComponent(d.consultation_id)}#consultations`;
+  }
+});
+
+socket.on('consultation_completed', (d) => {
+  if (ME_ROLE === 'PATIENT') {
+    bumpNotif(d.has_prescription
+      ? 'แพทย์จบเคสแล้ว ใบสั่งยายังพร้อมให้สั่งซื้อ'
+      : 'แพทย์จบเคสการปรึกษาแล้ว');
+    refreshConsultations();
+  }
+});
+
+socket.on('order_status_update', (d) => {
+  if (ME_ROLE === 'PATIENT') {
+    const labels = { ACCEPTED:'ร้านยารับออเดอร์', PREPARING:'กำลังเตรียมยา', COMPLETED:'จัดส่งแล้ว' };
+    bumpNotif(`📦 ${labels[d.status] || d.status}`);
+  }
+});
+
+socket.on('shop_order_status_update', (d) => {
+  if (ME_ROLE === 'PATIENT') {
+    const labels = { ACCEPTED:'ร้านค้ารับออเดอร์', PREPARING:'กำลังเตรียมสินค้า', COMPLETED:'ออเดอร์เสร็จสิ้น' };
+    bumpNotif(labels[d.status] || d.status);
+  }
+});
+
+socket.on('new_order', (d) => {
+  if (ME_ROLE === 'PHARMACY') bumpNotif(`🛒 ออเดอร์ใหม่: ${d.patient_name} (${d.medicine_name})`);
+});
+
+// ── Real-time message handler ─────────────────────────────────────────────
+socket.on('new_message', (msg) => {
+  if (currentConsId) {
+    appendBubble(msg);
+    scrollChat();
+  }
+  if (msg.sender_id !== ME_ID) {
+    const badge = document.getElementById('nav-msg-badge');
+    badge.style.display = 'inline';
+    if (currentConsId !== msg.consultation_id) showToast(`💬 ${msg.sender_name}: ${msg.text.substring(0,30)}`);
+  }
+});
+
+// ── Chat panel functions ───────────────────────────────────────────────────
+function openChat(consId, title, subtitle) {
+  currentConsId = consId;
+  document.getElementById('chat-title').textContent    = title    || 'แชท';
+  document.getElementById('chat-subtitle').textContent = subtitle || '';
+  document.getElementById('chat-avatar').textContent   = (title||'?').substring(0,2);
+  document.getElementById('chat-panel').style.display  = 'flex';
+  document.getElementById('chat-overlay').style.display = 'block';
+  document.getElementById('nav-msg-badge').style.display = 'none';
+  socket.emit('join_consultation', { consultation_id: consId });
+  loadMessages(consId);
+  setTimeout(() => document.getElementById('chat-input').focus(), 100);
+}
+
+function closeChat() {
+  document.getElementById('chat-panel').style.display   = 'none';
+  document.getElementById('chat-overlay').style.display = 'none';
+  currentConsId = null;
+}
+
+function prescribeFromChat() {
+  const savedConsId = currentConsId;
+  closeChat();
+  // If currentCase is set (doctor detail panel), use it
+  if (typeof currentCase !== 'undefined' && currentCase && typeof openPrescribeSection === 'function') {
+    openPrescribeSection();
+    return;
+  }
+  // Otherwise try to click the matching case row to select it first
+  if (savedConsId) {
+    const row = document.getElementById(`case-${savedConsId}`);
+    if (row && row.dataset.case) {
+      try {
+        const caseData = JSON.parse(row.dataset.case);
+        if (typeof selectCase === 'function') selectCase(caseData);
+        if (typeof openPrescribeSection === 'function') openPrescribeSection();
+      } catch(e) {
+        showToast('กรุณาเลือกเคสจากรายการก่อน');
+      }
+    }
+  }
+}
+
+async function completeFromChat() {
+  const savedConsId = currentConsId;
+  closeChat();
+  // If currentCase is set, use the existing function
+  if (typeof currentCase !== 'undefined' && currentCase && typeof completeCase === 'function') {
+    completeCase();
+    return;
+  }
+  // Otherwise call API directly using the consultation ID from chat
+  if (!savedConsId) { showToast('ไม่พบข้อมูลเคส'); return; }
+  if (!window.confirm('จบเคสนี้หรือไม่?')) return;
+  try {
+    const res = await fetch(`/api/consultations/${savedConsId}/complete`, {method:'POST'});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    showToast('จบเคสเรียบร้อยแล้ว');
+    setTimeout(() => location.reload(), 900);
+  } catch (error) {
+    showToast(error.message || 'ไม่สามารถจบเคสได้');
+  }
+}
+
+async function loadMessages(consId) {
+  const container = document.getElementById('chat-messages');
+  try {
+    const res  = await fetch(`/api/messages?consultation_id=${consId}`);
+    const msgs = await res.json();
+    container.innerHTML = '';
+    if (!msgs.length) {
+      container.innerHTML = '<div style="text-align:center;color:#9ca3af;margin-top:2rem;font-size:.85rem;">เริ่มต้นสนทนาได้เลย</div>';
+      return;
+    }
+    msgs.forEach(appendBubble);
+    scrollChat();
+  } catch(e) { console.error(e); }
+}
+
+function escapeChatHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+  })[char]);
+}
+
+function appendBubble(msg) {
+  const isMe  = msg.sender_id === ME_ID;
+  const wrap  = document.createElement('div');
+  wrap.style.cssText = `display:flex; justify-content:${isMe?'flex-end':'flex-start'}; margin-bottom:.25rem;`;
+
+  const bub = document.createElement('div');
+  bub.style.cssText = `max-width:78%; padding:.55rem .85rem; border-radius:14px; font-size:.85rem; line-height:1.4;
+    ${isMe ? 'background:#4f46e5; color:white; border-bottom-right-radius:3px;'
+           : 'background:#e5e7eb; color:#1f2937; border-bottom-left-radius:3px;'}`;
+  bub.innerHTML = `<div>${escapeChatHtml(msg.text).replace(/\n/g,'<br>')}</div>
+    <small style="display:block;text-align:right;font-size:.65rem;opacity:.7;margin-top:.2rem;">${escapeChatHtml(msg.sender_name)} · ${escapeChatHtml(msg.timestamp)}</small>`;
+  wrap.appendChild(bub);
+  document.getElementById('chat-messages').appendChild(wrap);
+}
+
+function scrollChat() {
+  const c = document.getElementById('chat-messages');
+  c.scrollTop = c.scrollHeight;
+}
+
+async function sendMsg() {
+  if (!currentConsId) return;
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  socket.emit('send_message', { consultation_id: currentConsId, text });
+}
+
+// ── Refresh helpers ────────────────────────────────────────────────────────
+function refreshConsultations() {
+  // Subpages can override this
+  if (typeof onRefreshConsultations === 'function') onRefreshConsultations();
+}
+
+function addPendingRow(data) {
+  // Doctor dashboard can override this
+  if (typeof onNewConsultation === 'function') onNewConsultation(data);
+}
+
+// ── Sidebar nav links ──────────────────────────────────────────────────────
+document.getElementById('nav-appointments').addEventListener('click', (e) => {
+  e.preventDefault();
+  const el = document.getElementById('consultations');
+  if (el) { el.scrollIntoView({behavior:'smooth'}); }
+});
+
+document.getElementById('nav-messages').addEventListener('click', (e) => {
+  e.preventDefault();
+  // Open most recent active consultation chat
+  if (typeof openMostRecentChat === 'function') openMostRecentChat();
+});
+
+function toggleGeminiChat() {
+  const panel = document.getElementById('gemini-chat');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) document.getElementById('gemini-input').focus();
+}
+
+async function sendGeminiMessage() {
+  const input = document.getElementById('gemini-input');
+  const container = document.getElementById('gemini-messages');
+  const message = input.value.trim();
+  if (!message) return;
+  input.value = '';
+  const userBubble = document.createElement('div');
+  userBubble.className = 'gemini-bubble user';
+  userBubble.textContent = message;
+  container.appendChild(userBubble);
+  const waiting = document.createElement('div');
+  waiting.className = 'gemini-bubble assistant';
+  waiting.textContent = 'กำลังค้นหาคำตอบ...';
+  container.appendChild(waiting);
+  container.scrollTop = container.scrollHeight;
+  try {
+    const res = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await res.json();
+    waiting.textContent = data.answer || data.message;
+  } catch (error) {
+    waiting.textContent = 'ไม่สามารถเชื่อมต่อผู้ช่วยได้ในขณะนี้';
+  }
+  container.scrollTop = container.scrollHeight;
+}
+</script>
+{% block dashboard_scripts %}{% endblock %}
+{% endblock %}
+
+<script>
+// ── Notification System ───────────────────────────────────────────────────
+let notifOpen = false;
+
+async function loadNotifications() {
+  try {
+    const r = await fetch('/api/notifications');
+    if (!r.ok) return;
+    const d = await r.json();
+    const badge = document.getElementById('notif-badge');
+    const list  = document.getElementById('notif-list');
+    if (!badge || !list) return;
+    if (d.unread > 0) {
+      badge.style.display = 'flex';
+      badge.textContent = d.unread > 9 ? '9+' : d.unread;
+    } else {
+      badge.style.display = 'none';
+    }
+    if (!d.notifications.length) {
+      list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#9ca3af;font-size:.82rem;">ไม่มีการแจ้งเตือน</div>';
+      return;
+    }
+    const icons = { consultation:'🩺', order:'📦', message:'💬', system:'🔔' };
+    list.innerHTML = d.notifications.map(n => `
+      <div onclick="markRead(${n.id},'${n.link}')" style="display:flex;gap:.65rem;padding:.75rem 1rem;cursor:pointer;background:${n.is_read?'#fff':'#fafafe'};border-bottom:1px solid #f9f9f9;">
+        <div style="font-size:1.2rem;flex-shrink:0;margin-top:.1rem;">${icons[n.type]||'🔔'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.82rem;font-weight:${n.is_read?400:600};color:#111;margin-bottom:.1rem;">${n.title}</div>
+          ${n.body ? `<div style="font-size:.75rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.body}</div>` : ''}
+          <div style="font-size:.68rem;color:#9ca3af;margin-top:.15rem;">${n.created_at}</div>
+        </div>
+        ${!n.is_read ? '<div style="width:7px;height:7px;background:#6366f1;border-radius:50%;flex-shrink:0;margin-top:.4rem;"></div>' : ''}
+      </div>`).join('');
+  } catch(e) { console.warn('Notifications unavailable'); }
+}
+
+async function markRead(id, link) {
+  await fetch(`/api/notifications/${id}/read`, { method:'POST' });
+  if (link && link !== '#') window.location.href = link;
+  else loadNotifications();
+}
+
+async function readAllNotifs() {
+  await fetch('/api/notifications/read-all', { method:'POST' });
+  loadNotifications();
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  notifOpen = !notifOpen;
+  panel.style.display = notifOpen ? 'block' : 'none';
+  if (notifOpen) loadNotifications();
+}
+
+document.addEventListener('click', e => {
+  if (notifOpen && !document.getElementById('notif-btn')?.contains(e.target) && !document.getElementById('notif-panel')?.contains(e.target)) {
+    document.getElementById('notif-panel').style.display = 'none';
+    notifOpen = false;
+  }
+});
+
+// Load on startup and every 30s
+loadNotifications();
+setInterval(loadNotifications, 30000);
+
+// Socket push notification
+if (typeof socket !== 'undefined') {
+  socket.on('notification', (data) => {
+    loadNotifications();
+    if (typeof showToast === 'function') showToast(data.title);
+  });
+}
+</script>

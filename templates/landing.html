@@ -1,0 +1,903 @@
+{% extends "base.html" %}
+{% block title %}MediLink AI — เชื่อมต่อทุกการดูแลสุขภาพ{% endblock %}
+{% block body_class %}{% endblock %}
+{% block body %}
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', 'Noto Sans Thai', sans-serif;
+    background: #fff;
+    color: #111827;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, .95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #f3f4f6;
+    z-index: 100;
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: .85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #111;
+    text-decoration: none;
+  }
+
+  .brand span {
+    color: #6366f1;
+  }
+
+  .brand-dot {
+    width: 28px;
+    height: 28px;
+    background: #6366f1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-dot svg {
+    width: 16px;
+    height: 16px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-links a {
+    font-size: .88rem;
+    color: #374151;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .nav-links a:hover {
+    color: #6366f1;
+  }
+
+  .btn {
+    padding: .6rem 1.25rem;
+    border-radius: 9px;
+    font-size: .88rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .btn-primary {
+    background: #6366f1;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #4f46e5;
+  }
+
+  .btn-outline {
+    background: #fff;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+  }
+
+  .btn-outline:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+  }
+
+  /* Hero */
+  .hero {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: center;
+  }
+
+  .hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: #ede9fe;
+    color: #6d28d9;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: .35rem .85rem;
+    border-radius: 20px;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #111;
+    margin-bottom: 1rem;
+  }
+
+  .hero h1 span {
+    color: #6366f1;
+  }
+
+  .hero-sub {
+    font-size: 1rem;
+    color: #6b7280;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    max-width: 480px;
+  }
+
+  .hero-btns {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-visual {
+    background: linear-gradient(135deg, #ede9fe 0%, #e0f2fe 100%);
+    border-radius: 24px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .08);
+    width: 260px;
+  }
+
+  .hero-card-hd {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .75rem;
+  }
+
+  .hc-ava {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .8rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .hc-ava.doc {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  }
+
+  .hc-ava.pat {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+  }
+
+  .hc-name {
+    font-size: .82rem;
+    font-weight: 700;
+    color: #111;
+  }
+
+  .hc-role {
+    font-size: .7rem;
+    color: #9ca3af;
+  }
+
+  .ai-bubble {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    padding: .6rem .8rem;
+    font-size: .72rem;
+    color: #166534;
+    line-height: 1.5;
+  }
+
+  .float-card {
+    position: absolute;
+    background: #fff;
+    border-radius: 12px;
+    padding: .6rem .85rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .1);
+    font-size: .75rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .float-card.top-right {
+    top: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .float-card.bot-left {
+    bottom: 1.5rem;
+    left: 1.5rem;
+  }
+
+  .pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1
+    }
+
+    50% {
+      opacity: .4
+    }
+  }
+
+  /* Stats */
+  .stats {
+    background: #f8fafc;
+    padding: 3rem 1.5rem;
+  }
+
+  .stats-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .stat-box .num {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #6366f1;
+  }
+
+  .stat-box .lbl {
+    font-size: .85rem;
+    color: #6b7280;
+    margin-top: .25rem;
+  }
+
+  /* Features */
+  .features {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem;
+  }
+
+  .section-label {
+    font-size: .75rem;
+    font-weight: 600;
+    color: #6366f1;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: .6rem;
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    text-align: center;
+    color: #111;
+    margin-bottom: .75rem;
+  }
+
+  .section-sub {
+    font-size: .92rem;
+    color: #6b7280;
+    text-align: center;
+    max-width: 540px;
+    margin: 0 auto 3rem;
+    line-height: 1.7;
+  }
+
+  .feat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .feat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+
+  .feat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .feat-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: .4rem;
+  }
+
+  .feat-desc {
+    font-size: .82rem;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+
+  /* How it works */
+  .hiw {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    padding: 4rem 1.5rem;
+    color: #fff;
+  }
+
+  .hiw-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .hiw h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: .5rem;
+  }
+
+  .hiw-sub {
+    text-align: center;
+    opacity: .8;
+    font-size: .9rem;
+    margin-bottom: 3rem;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+
+  .step {
+    text-align: center;
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, .12);
+    border-radius: 16px;
+  }
+
+  .step-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 auto .75rem;
+  }
+
+  .step-title {
+    font-size: .9rem;
+    font-weight: 700;
+    margin-bottom: .35rem;
+  }
+
+  .step-desc {
+    font-size: .78rem;
+    opacity: .8;
+    line-height: 1.55;
+  }
+
+  /* Testimonials */
+  .testimonials {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem;
+  }
+
+  .testi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .testi-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+
+  .stars {
+    color: #f59e0b;
+    font-size: .9rem;
+    margin-bottom: .75rem;
+  }
+
+  .testi-text {
+    font-size: .85rem;
+    color: #374151;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+
+  .testi-author {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+  }
+
+  .testi-ava {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 700;
+  }
+
+  .testi-name {
+    font-size: .82rem;
+    font-weight: 600;
+    color: #111;
+  }
+
+  .testi-role {
+    font-size: .72rem;
+    color: #9ca3af;
+  }
+
+  /* CTA */
+  .cta {
+    background: #f8fafc;
+    padding: 4rem 1.5rem;
+    text-align: center;
+  }
+
+  .cta h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #111;
+    margin-bottom: .75rem;
+  }
+
+  .cta-sub {
+    font-size: .92rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+  }
+
+  .cta-btns {
+    display: flex;
+    gap: .75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Footer */
+  .footer {
+    border-top: 1px solid #f3f4f6;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    font-size: .8rem;
+    color: #9ca3af;
+  }
+
+  /* Mobile */
+  @media(max-width:768px) {
+    .nav-inner {
+      padding: .75rem 1rem;
+    }
+
+    .nav-links {
+      gap: .5rem;
+    }
+
+    .nav-links a:not(.btn) {
+      display: none;
+    }
+
+    .nav-links .btn {
+      padding: .5rem .9rem;
+      font-size: .8rem;
+    }
+
+    .hero {
+      grid-template-columns: 1fr;
+      padding: 2.5rem 1.25rem 2rem;
+      gap: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+    }
+
+    .hero-sub {
+      font-size: .88rem;
+    }
+
+    .hero-visual {
+      display: none;
+    }
+
+    .hero-btns .btn {
+      flex: 1;
+      justify-content: center;
+      font-size: .88rem !important;
+      padding: .7rem 1rem !important;
+    }
+
+    .stats-inner {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-box .num {
+      font-size: 1.6rem;
+    }
+
+    .stat-box .lbl {
+      font-size: .78rem;
+    }
+
+    .features {
+      padding: 3rem 1.25rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+    }
+
+    .section-sub {
+      font-size: .82rem;
+    }
+
+    .feat-grid,
+    .testi-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .feat-card {
+      padding: 1.25rem;
+    }
+
+    .feat-title {
+      font-size: .88rem;
+    }
+
+    .feat-desc {
+      font-size: .78rem;
+    }
+
+    .steps {
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .hiw {
+      padding: 3rem 1.25rem;
+    }
+
+    .hiw h2 {
+      font-size: 1.4rem;
+    }
+
+    .step {
+      padding: 1rem;
+    }
+
+    .cta h2 {
+      font-size: 1.5rem;
+    }
+
+    .cta-sub {
+      font-size: .82rem;
+    }
+
+    .cta-btns .btn {
+      font-size: .88rem !important;
+      padding: .7rem 1.25rem !important;
+    }
+
+    .testimonials {
+      padding: 3rem 1.25rem;
+    }
+  }
+
+  @media(max-width:480px) {
+    .nav-inner {
+      padding: .65rem .85rem;
+    }
+
+    .brand {
+      font-size: 1rem;
+      gap: .35rem;
+    }
+
+    .brand-dot {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand-dot svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .hero {
+      padding: 2rem 1rem 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: 1.65rem;
+    }
+
+    .hero-kicker {
+      font-size: .68rem;
+      padding: .3rem .7rem;
+    }
+
+    .steps {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-inner {
+      gap: .75rem;
+    }
+
+    .stat-box .num {
+      font-size: 1.35rem;
+    }
+
+    .footer {
+      font-size: .72rem;
+      padding: 1.5rem 1rem;
+    }
+  }
+</style>
+
+<!-- Navbar -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <div class="brand-dot"><svg viewBox="0 0 24 24">
+          <path d="M12 3v18M3 12h18" />
+        </svg></div>
+      Medi<span>Link</span> AI
+    </a>
+    <div class="nav-links">
+      <a href="#features">ฟีเจอร์</a>
+      <a href="#how">วิธีใช้งาน</a>
+      <a href="{{ url_for('login') }}" class="btn btn-outline">เข้าสู่ระบบ</a>
+      <a href="{{ url_for('register') }}" class="btn btn-primary">สมัครฟรี →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section>
+  <div class="hero">
+    <div>
+      <div class="hero-kicker">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+        </svg>
+        ระบบสุขภาพที่เชื่อถือได้
+      </div>
+      <h1>ดูแลสุขภาพ<br>อย่าง<span>ชาญฉลาด</span><br>ด้วย AI</h1>
+      <p class="hero-sub">เชื่อมต่อผู้ป่วย แพทย์ และร้านยา ในแพลตฟอร์มเดียว พร้อม AI ช่วยวิเคราะห์อาการ แนะนำยา
+        และติดตามการรักษา</p>
+      <div class="hero-btns">
+        <a href="{{ url_for('register') }}" class="btn btn-primary"
+          style="font-size:.95rem;padding:.75rem 1.75rem;">เริ่มต้นฟรี →</a>
+        <a href="{{ url_for('login') }}" class="btn btn-outline"
+          style="font-size:.95rem;padding:.75rem 1.75rem;">ดูตัวอย่าง</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card">
+        <div class="hero-card-hd">
+          <div class="hc-ava doc">AI</div>
+          <div>
+            <div class="hc-name">AI Doctor</div>
+            <div class="hc-role">ผู้ช่วยแพทย์</div>
+          </div>
+        </div>
+        <div class="ai-bubble">🔍 วิเคราะห์อาการ: ปวดหัว มีไข้ เจ็บคอ<br>⚠️ ประวัติแพ้ยา: Penicillin<br>💊 แนะนำยา:
+          Paracetamol 500mg</div>
+      </div>
+      <div class="float-card top-right">
+        <div class="pulse"></div><span>Online · แพทย์ 3 ท่านพร้อมรับเคส</span>
+      </div>
+      <div class="float-card bot-left">🏪 <span>ร้านยา 8 แห่งใกล้คุณ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="stats">
+  <div class="stats-inner">
+    <div class="stat-box">
+      <div class="num">{{ stats.doctors }}+</div>
+      <div class="lbl">แพทย์ในระบบ</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ stats.patients }}+</div>
+      <div class="lbl">ผู้ใช้งาน</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ stats.consultations }}+</div>
+      <div class="lbl">เคสที่รักษาแล้ว</div>
+    </div>
+    <div class="stat-box">
+      <div class="num">{{ stats.pharmacies }}+</div>
+      <div class="lbl">ร้านยาในเครือข่าย</div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="section-label">ฟีเจอร์หลัก</div>
+  <div class="section-title">ครบทุกความต้องการด้านสุขภาพ</div>
+  <p class="section-sub">ระบบที่ออกแบบมาให้ดูแลสุขภาพได้ง่าย ต่อเนื่อง และปลอดภัย</p>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#ede9fe;">🤖</div>
+      <div class="feat-title">AI Doctor 24/7</div>
+      <div class="feat-desc">ปรึกษา AI เรื่องอาการเบื้องต้น รับคำแนะนำยา OTC ได้ตลอดเวลา ก่อนพบแพทย์จริง</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#dcfce7;">🩺</div>
+      <div class="feat-title">ปรึกษาแพทย์ออนไลน์</div>
+      <div class="feat-desc">เปิดเคส ส่งอาการ รูปภาพ แชทกับแพทย์ real-time รับใบสั่งยาดิจิทัล</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#dbeafe;">📹</div>
+      <div class="feat-title">Video Call กับแพทย์</div>
+      <div class="feat-desc">Telemedicine ผ่าน WebRTC แบบ peer-to-peer ปลอดภัย ไม่ผ่าน server กลาง</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#fef3c7;">🗺️</div>
+      <div class="feat-title">ค้นหายาใกล้ฉัน</div>
+      <div class="feat-desc">ดู stock ยาในร้านยารอบบ้าน บนแผนที่ real-time เลือก pickup หรือส่งถึงบ้าน</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#fce7f3;">📋</div>
+      <div class="feat-title">ใบสั่งยาดิจิทัล</div>
+      <div class="feat-desc">ใบสั่งยา format มาตรฐาน พร้อม QR code ให้ร้านยา scan พิมพ์หรือแชร์ได้ทันที</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon" style="background:#f0fdf4;">🔒</div>
+      <div class="feat-title">ปลอดภัย PDPA</div>
+      <div class="feat-desc">ข้อมูลสุขภาพถูกเก็บรักษาตามมาตรฐาน เปิดเผยเฉพาะในเคสที่คุณเปิดเอง</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="hiw" id="how">
+  <div class="hiw-inner">
+    <h2>ใช้งานง่าย 4 ขั้นตอน</h2>
+    <p class="hiw-sub">จากอาการ ถึงยาที่บ้าน ใน session เดียว</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">สมัครสมาชิก</div>
+        <div class="step-desc">สร้างโปรไฟล์สุขภาพ ระบุแพ้ยา โรคประจำตัว</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-num">2</div>
+        <div class="step-title">เปิดเคสหรือปรึกษา AI</div>
+        <div class="step-desc">ส่งอาการ รูปภาพ แชทกับ AI Doctor หรือแพทย์จริง</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">รับใบสั่งยา</div>
+        <div class="step-desc">แพทย์วินิจฉัยและออกใบสั่งยาดิจิทัล พร้อม QR code</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">รับยาที่บ้านหรือร้านยา</div>
+        <div class="step-desc">เลือกร้านใกล้บ้าน รับหน้าร้านหรือส่งถึงบ้าน</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+{% if testimonials %}
+<section class="testimonials">
+  <div class="section-label">รีวิวจากผู้ใช้</div>
+  <div class="section-title">ผู้ใช้พูดถึงเราอย่างไร</div>
+  <p class="section-sub" style="margin-bottom:2rem;">รีวิวจริงจากผู้ป่วยที่ใช้บริการ</p>
+  <div class="testi-grid">
+    {% for r in testimonials[:3] %}
+    <div class="testi-card">
+      <div class="stars">★★★★{% if r.rating >= 5 %}★{% else %}☆{% endif %}</div>
+      <div class="testi-text">"{{ r.comment[:120] }}{% if r.comment|length > 120 %}...{% endif %}"</div>
+      <div class="testi-author">
+        <div class="testi-ava">{{ r.author.name[0] if r.author else 'U' }}</div>
+        <div>
+          <div class="testi-name">{{ r.author.name if r.author else 'ผู้ใช้' }}</div>
+          <div class="testi-role">ผู้ป่วย</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section class="cta">
+  <h2>พร้อมดูแลสุขภาพอย่างชาญฉลาด?</h2>
+  <p class="cta-sub">สมัครฟรี ไม่มีค่าสมัคร เริ่มใช้งานได้ทันที</p>
+  <div class="cta-btns">
+    <a href="{{ url_for('register') }}" class="btn btn-primary" style="font-size:.95rem;padding:.8rem 2rem;">เริ่มต้นเลย
+      →</a>
+    <a href="{{ url_for('login') }}" class="btn btn-outline" style="font-size:.95rem;padding:.8rem 2rem;">มีบัญชีแล้ว?
+      เข้าสู่ระบบ</a>
+  </div>
+</section>
+
+<footer class="footer">
+  MediLink AI · Hackathon Demo · ข้อมูล AI ไม่ใช่การวินิจฉัยโรค · ฉุกเฉิน โทร 1669
+</footer>
+{% endblock %}

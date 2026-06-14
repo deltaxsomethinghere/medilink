@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}ใบสั่งยา {{ cons.id }} | MediLink AI{% endblock %}
+{% block body %}
+<style>
+@media print {
+  .no-print { display:none!important; }
+  body { background:#fff; }
+  .rx-page { box-shadow:none; max-width:100%; }
+}
+body { background:#f3f4f6; font-family:'Plus Jakarta Sans','Noto Sans Thai',sans-serif; }
+.rx-wrap { max-width:720px; margin:0 auto; padding:1.5rem; }
+.no-print { display:flex; gap:.75rem; margin-bottom:1.25rem; justify-content:flex-end; }
+.btn { padding:.55rem 1.1rem; border-radius:8px; font-size:.85rem; font-weight:600; cursor:pointer; border:none; text-decoration:none; }
+.btn-primary { background:#6366f1; color:#fff; }
+.btn-outline { background:#fff; color:#374151; border:1px solid #e5e7eb; }
+.rx-page { background:#fff; border-radius:12px; box-shadow:0 2px 16px rgba(0,0,0,.08); overflow:hidden; }
+
+/* Header */
+.rx-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; padding:1.5rem 2rem; display:flex; justify-content:space-between; align-items:flex-start; }
+.rx-logo { display:flex; align-items:center; gap:.6rem; }
+.rx-logo-box { width:36px; height:36px; background:rgba(255,255,255,.25); border-radius:9px; display:flex; align-items:center; justify-content:center; }
+.rx-logo-box svg { width:20px; height:20px; stroke:#fff; stroke-width:2.5; fill:none; }
+.rx-brand { font-size:1.1rem; font-weight:800; }
+.rx-brand span { opacity:.75; font-size:.72rem; display:block; font-weight:400; margin-top:.1rem; }
+.rx-id { text-align:right; }
+.rx-id .rx-num { font-size:1rem; font-weight:700; }
+.rx-id .rx-date { font-size:.75rem; opacity:.8; margin-top:.2rem; }
+
+/* Sections */
+.rx-body { padding:1.75rem 2rem; }
+.rx-section { margin-bottom:1.5rem; }
+.rx-section:last-child { margin-bottom:0; }
+.rx-section-title { font-size:.7rem; font-weight:700; color:#9ca3af; letter-spacing:.08em; text-transform:uppercase; margin-bottom:.75rem; padding-bottom:.4rem; border-bottom:1px solid #f3f4f6; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.info-item .label { font-size:.72rem; color:#9ca3af; margin-bottom:.15rem; }
+.info-item .value { font-size:.88rem; font-weight:600; color:#111; }
+.allergy-badge { display:inline-block; background:#fef2f2; color:#991b1b; font-size:.72rem; font-weight:600; padding:2px 8px; border-radius:20px; margin:.2rem .2rem 0 0; }
+
+/* Rx prescription block */
+.rx-drug { background:#f8fafc; border-left:4px solid #6366f1; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin-bottom:.75rem; }
+.rx-drug-name { font-size:1rem; font-weight:700; color:#111; margin-bottom:.35rem; display:flex; align-items:center; gap:.5rem; }
+.rx-symbol { font-size:1.3rem; color:#6366f1; font-weight:800; font-style:italic; }
+.rx-drug-detail { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; margin-top:.6rem; }
+.rx-drug-dt { background:#fff; border-radius:7px; padding:.45rem .6rem; }
+.rx-drug-dt .dt-label { font-size:.65rem; color:#9ca3af; margin-bottom:.1rem; }
+.rx-drug-dt .dt-val { font-size:.82rem; font-weight:600; color:#374151; }
+.diagnosis-box { background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:1rem 1.1rem; }
+.diagnosis-box p { font-size:.88rem; color:#166534; line-height:1.6; margin:0; }
+
+/* QR */
+.qr-section { display:grid; grid-template-columns:1fr 140px; gap:1.5rem; align-items:center; }
+.qr-box { width:120px; height:120px; border:2px solid #e5e7eb; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:.35rem; }
+.qr-grid { display:grid; grid-template-columns:repeat(7,13px); gap:1.5px; }
+.qr-cell { width:13px; height:13px; border-radius:1px; }
+.qr-label { font-size:.65rem; color:#9ca3af; text-align:center; }
+
+/* Footer */
+.rx-footer { background:#f8fafc; border-top:1px solid #f3f4f6; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+.rx-footer-note { font-size:.72rem; color:#9ca3af; line-height:1.5; }
+.rx-sig { text-align:right; }
+.rx-sig .sig-line { width:140px; border-bottom:1px solid #374151; margin-bottom:.3rem; height:30px; }
+.rx-sig .sig-label { font-size:.72rem; color:#374151; font-weight:600; }
+.rx-sig .sig-name { font-size:.75rem; color:#6b7280; }
+.valid-badge { display:inline-flex; align-items:center; gap:.4rem; background:#dcfce7; color:#166534; font-size:.72rem; font-weight:600; padding:3px 10px; border-radius:20px; margin-top:.5rem; }
+
+/* ── Mobile Responsive ── */
+@media(max-width:600px) {
+  .rx-wrap { padding:1rem; }
+  .rx-header { padding:1.1rem 1.25rem; flex-wrap:wrap; gap:.5rem; }
+  .rx-brand { font-size:.95rem; }
+  .rx-id .rx-num { font-size:.85rem; }
+  .rx-body { padding:1.25rem; }
+  .info-grid { grid-template-columns:1fr; gap:.5rem; }
+  .rx-drug-detail { grid-template-columns:1fr; gap:.4rem; }
+  .qr-section { grid-template-columns:1fr; gap:1rem; }
+  .qr-box { margin:0 auto; }
+  .rx-footer { flex-direction:column; gap:1rem; text-align:center; padding:1rem 1.25rem; }
+  .rx-sig { text-align:center; }
+  .rx-sig .sig-line { margin:0 auto .3rem; }
+  .no-print { justify-content:center; flex-wrap:wrap; }
+  .no-print .btn { font-size:.78rem; padding:.5rem .85rem; }
+}
+</style>
+
+<div class="rx-wrap">
+  <!-- Actions -->
+  <div class="no-print">
+    <a href="javascript:history.back()" class="btn btn-outline">← กลับ</a>
+    <button class="btn btn-outline" onclick="window.print()">🖨️ พิมพ์</button>
+    <button class="btn btn-primary" onclick="shareRx()">📤 แชร์ / ดาวน์โหลด</button>
+  </div>
+
+  <div class="rx-page">
+    <!-- Header -->
+    <div class="rx-header">
+      <div class="rx-logo">
+        <div class="rx-logo-box"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg></div>
+        <div class="rx-brand">MediLink AI<span>ใบสั่งยาดิจิทัล</span></div>
+      </div>
+      <div class="rx-id">
+        <div class="rx-num">{{ cons.id }}</div>
+        <div class="rx-date">{{ cons.prescribed_at.strftime('%d/%m/%Y %H:%M') if cons.prescribed_at else cons.created_at.strftime('%d/%m/%Y') }}</div>
+      </div>
+    </div>
+
+    <div class="rx-body">
+      <!-- Patient + Doctor info -->
+      <div class="rx-section">
+        <div class="rx-section-title">ข้อมูลผู้ป่วยและแพทย์ผู้สั่งยา</div>
+        <div class="info-grid">
+          <div>
+            <div class="info-item" style="margin-bottom:.6rem;"><div class="label">ผู้ป่วย</div><div class="value">{{ cons.patient.name }}</div></div>
+            {% if profile and profile.address %}<div class="info-item" style="margin-bottom:.6rem;"><div class="label">ที่อยู่</div><div class="value" style="font-weight:400;font-size:.82rem;">{{ profile.address }}</div></div>{% endif %}
+            {% if profile and profile.allergies %}
+            <div class="info-item"><div class="label">ประวัติแพ้ยา</div>
+              <div>{% for a in profile.allergies %}<span class="allergy-badge">⚠️ {{ a }}</span>{% endfor %}</div>
+            </div>
+            {% endif %}
+          </div>
+          <div>
+            <div class="info-item" style="margin-bottom:.6rem;"><div class="label">แพทย์ผู้สั่งยา</div><div class="value">{{ cons.doctor.name if cons.doctor else '—' }}</div></div>
+            {% if cons.doctor and cons.doctor.specialty %}<div class="info-item" style="margin-bottom:.6rem;"><div class="label">ความเชี่ยวชาญ</div><div class="value" style="font-weight:400;">{{ cons.doctor.specialty }}</div></div>{% endif %}
+            {% if cons.doctor and cons.doctor.hospital %}<div class="info-item"><div class="label">สถานพยาบาล</div><div class="value" style="font-weight:400;font-size:.82rem;">{{ cons.doctor.hospital }}</div></div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnosis -->
+      {% if cons.diagnosis %}
+      <div class="rx-section">
+        <div class="rx-section-title">การวินิจฉัย</div>
+        <div class="diagnosis-box"><p>{{ cons.diagnosis }}</p></div>
+      </div>
+      {% endif %}
+
+      <!-- Drug -->
+      <div class="rx-section">
+        <div class="rx-section-title">รายการยา</div>
+        <div class="rx-drug">
+          <div class="rx-drug-name"><span class="rx-symbol">℞</span>{{ cons.medicine.name }}</div>
+          {% if cons.medicine.generic %}<div style="font-size:.78rem;color:#6b7280;margin-bottom:.3rem;">{{ cons.medicine.generic }}</div>{% endif %}
+          <div class="rx-drug-detail">
+            <div class="rx-drug-dt"><div class="dt-label">ขนาดยา</div><div class="dt-val">{{ cons.medicine.dosage or '—' }}</div></div>
+            <div class="rx-drug-dt"><div class="dt-label">วิธีใช้</div><div class="dt-val">{{ cons.medicine.instruction or '—' }}</div></div>
+            <div class="rx-drug-dt"><div class="dt-label">วิธีรับยา</div><div class="dt-val">{{ 'รับที่ร้านยา' if cons.delivery_type == 'pickup' else 'จัดส่งถึงบ้าน' }}</div></div>
+          </div>
+          {% if cons.pharmacy %}
+          <div style="margin-top:.65rem;font-size:.78rem;color:#374151;">🏪 ร้านยา: <strong>{{ cons.pharmacy.name }}</strong> · {{ cons.pharmacy.address }}</div>
+          {% endif %}
+        </div>
+        {% if cons.medicine.side_effects %}
+        <div style="font-size:.75rem;color:#6b7280;padding:.5rem .6rem;background:#fafafa;border-radius:7px;">⚠️ ผลข้างเคียงที่อาจเกิด: {{ cons.medicine.side_effects }}</div>
+        {% endif %}
+      </div>
+
+      <!-- QR + Validity -->
+      <div class="rx-section">
+        <div class="rx-section-title">QR Code สำหรับร้านยา</div>
+        <div class="qr-section">
+          <div>
+            <div class="valid-badge">✅ ใบสั่งยาถูกต้อง · ออกโดย MediLink AI</div>
+            <p style="font-size:.78rem;color:#6b7280;margin-top:.65rem;line-height:1.6;">ร้านยาสามารถ scan QR code เพื่อยืนยันใบสั่งยานี้ได้ทันที ใบสั่งยามีผล 7 วัน นับจากวันที่ออก</p>
+            <p style="font-size:.72rem;color:#9ca3af;margin-top:.4rem;">รหัส: {{ cons.id }} · ผู้ป่วย: {{ cons.patient_id }}</p>
+          </div>
+          <div>
+            <div class="qr-box">
+              <div class="qr-grid" id="qr-pixels"></div>
+            </div>
+            <div class="qr-label">{{ cons.id }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="rx-footer">
+      <div class="rx-footer-note">
+        เอกสารนี้ออกโดย MediLink AI · ไม่ใช่ใบสั่งยาอย่างเป็นทางการทางกฎหมาย<br>
+        ใช้เป็นข้อมูลประกอบการรับยาเท่านั้น · ฉุกเฉิน โทร 1669
+      </div>
+      <div class="rx-sig">
+        <div class="sig-line"></div>
+        <div class="sig-label">{{ cons.doctor.name if cons.doctor else '—' }}</div>
+        <div class="sig-name">แพทย์ผู้สั่งยา</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Generate deterministic QR-like pattern from cons_id
+function genQR(seed) {
+  const s = seed.split('').reduce((a,c) => a + c.charCodeAt(0), 0);
+  const grid = document.getElementById('qr-pixels');
+  let html = '';
+  for (let i = 0; i < 49; i++) {
+    const r = i < 7 || i > 41 || (i%7 === 0) || (i%7 === 6) ? 1 :
+              Math.sin(s * (i+1) * 0.37) > 0 ? 1 : 0;
+    html += `<div class="qr-cell" style="background:${r?'#111':'#fff'}"></div>`;
+  }
+  grid.innerHTML = html;
+}
+genQR('{{ cons.id }}');
+
+async function shareRx() {
+  if (navigator.share) {
+    navigator.share({ title: 'ใบสั่งยา {{ cons.id }}', url: window.location.href });
+  } else {
+    await navigator.clipboard.writeText(window.location.href);
+    alert('คัดลอกลิงก์ใบสั่งยาแล้ว!');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "shop" %}
+{% block title %}ร้านสุขภาพ | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<section class="dashboard-heading"><div><span class="clinical-kicker">Health commerce</span><h1>ร้านผลิตภัณฑ์สุขภาพ</h1><p>อาหารเสริม อุปกรณ์การแพทย์ และผลิตภัณฑ์ดูแลสุขภาพ</p></div></section>
+<form class="filter-bar" method="get">
+  <label>ค้นหาสินค้า<input name="q" value="{{ search }}" placeholder="ชื่อสินค้า"></label>
+  <label>หมวดหมู่<select name="category"><option value="">ทั้งหมด</option>{% for item in categories %}<option value="{{ item }}" {% if item == selected_category %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+  <button class="primary-button">ค้นหา</button>
+</form>
+<section class="market-grid">
+{% for product in products %}
+  <article class="market-card"><a href="{{ url_for('product_detail', product_id=product.id) }}"><div class="product-visual">{{ product.icon[:2]|upper }}</div></a><div class="market-card-body"><span class="card-eyebrow">{{ product.category }}</span><h2 style="font-size:1rem;margin:.35rem 0;">{{ product.name }}</h2><p style="font-size:.78rem;color:var(--muted);min-height:42px;">{{ product.description }}</p><div style="display:flex;justify-content:space-between;align-items:center;margin-top:.8rem;"><strong style="color:var(--primary);">฿{{ '%.0f'|format(product.price) }}</strong><small>เหลือ {{ product.stock }}</small></div><button class="primary-button" style="width:100%;margin-top:.75rem;" onclick="addToCart({{ product.id }})">เพิ่มลงตะกร้า</button></div></article>
+{% endfor %}
+</section>
+{% endblock %}
+{% block dashboard_scripts %}<script>
+async function addToCart(id){const r=await fetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product_id:id,quantity:1})});const d=await r.json();showToast(d.message);if(r.ok)setTimeout(()=>location.reload(),700);}
+</script>{% endblock %}
+

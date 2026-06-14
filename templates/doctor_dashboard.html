@@ -1,0 +1,808 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "doctor" %}
+{% block title %}แดชบอร์ดแพทย์ | MediLink AI{% endblock %}
+
+{% block dashboard_content %}
+<section class="dashboard-heading">
+  <div>
+    <span class="clinical-kicker">Clinical workspace</span>
+    <h1>ศูนย์ดูแลผู้ป่วย</h1>
+    <p>{{ current_user.name }} {% if user.specialty %}· {{ user.specialty }}{% endif %}</p>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card">
+    <span class="metric-icon indigo">
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M3 10h18" />
+      </svg>
+    </span>
+    <div><span>รอรับเคส</span><strong id="pending-count">{{ pending|length }}</strong><small>รายการใหม่</small></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon emerald">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+      </svg>
+    </span>
+    <div><span>เคสของฉัน</span><strong>{{ my_cases|length }}</strong><small>รายการ</small></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon cyan">
+      <svg viewBox="0 0 24 24">
+        <path d="m10.5 20.5 10-10a4.2 4.2 0 0 0-6-6l-10 10a4.2 4.2 0 0 0 6 6Z" />
+      </svg>
+    </span>
+    <div><span>ยาในระบบ</span><strong>{{ medicines|length }}</strong><small>รายการ</small></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon violet">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 10h16M6 10v10h12V10M8 4h8l2 6H6l2-6Z" />
+      </svg>
+    </span>
+    <div><span>ร้านยาในเครือข่าย</span><strong>{{ pharmacies|length }}</strong><small>ร้าน</small></div>
+  </article>
+</section>
+
+<style>.doc-dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}@media(max-width:820px){.doc-dash-grid{grid-template-columns:1fr}}</style>
+<div class="doc-dash-grid">
+
+  <!-- ── Left: Pending + My Cases ─────────────────────────────────────── -->
+  <div>
+
+    <!-- Pending Consultations -->
+    <article class="clinical-card" id="consultations" style="margin-bottom:1.25rem;">
+      <div class="card-heading">
+        <div>
+          <span class="card-eyebrow">Incoming requests</span>
+          <h2>รอรับเคส <span id="pending-badge"
+              style="background:#ef4444; color:white; font-size:.7rem; padding:.1rem .45rem; border-radius:9999px; font-weight:700; margin-left:.25rem;">{{
+              pending|length }}</span></h2>
+        </div>
+      </div>
+
+      <div id="pending-list" style="display:flex; flex-direction:column; gap:.75rem; padding:1rem;">
+        {% if not pending %}
+        <div id="empty-pending" style="text-align:center; padding:2rem; color:var(--muted);">
+          <div style="font-size:2.5rem; margin-bottom:.5rem;">🎉</div>
+          <p>ไม่มีผู้ป่วยรอการประเมิน</p>
+        </div>
+        {% endif %}
+
+        {% for cons in pending %}
+        <div class="pending-row" id="pending-{{ cons.id }}"
+          style="border:1px solid var(--border); border-radius:10px; padding:.875rem 1rem; background:var(--surface); border-left:4px solid #f59e0b;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-family:monospace; font-size:.75rem; color:var(--muted);">{{ cons.id }}</div>
+              <div
+                style="font-weight:700; font-size:.95rem; margin:.15rem 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                {{ cons.patient.name }}
+              </div>
+              <p
+                style="font-size:.82rem; color:#374151; margin:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+                {{ cons.symptoms }}
+              </p>
+              {% set pp = cons.patient %}
+              {% set allergy_list = [] %}
+              {# Try to get allergies from patient profile — passed as separate variable not available here, will show
+              via JS #}
+              <small style="color:#f59e0b;">{{ cons.created_at.strftime('%d/%m %H:%M') }}</small>
+              {% if cons.image_url %}
+              <span style="font-size:.75rem; color:#6d28d9; margin-left:.5rem;">📷 มีรูป</span>
+              {% endif %}
+            </div>
+            <button class="primary-button compact-button" type="button" onclick="acceptCase('{{ cons.id }}', this)"
+              style="white-space:nowrap; flex-shrink:0;">
+              รับเคส
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <!-- My Cases -->
+    <article class="clinical-card">
+      <div class="card-heading">
+        <div>
+          <span class="card-eyebrow">Active cases</span>
+          <h2>เคสของฉัน</h2>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:.75rem; padding:1rem;">
+        {% if not my_cases %}
+        <div style="text-align:center; padding:2rem; color:var(--muted);">
+          <p>ยังไม่มีเคสที่รับ</p>
+        </div>
+        {% endif %}
+        {% for cons in my_cases %}
+        <div class="case-row" id="case-{{ cons.id }}" style="border:1px solid var(--border); border-radius:10px; padding:.875rem 1rem; background:var(--surface); cursor:pointer; transition:all .15s; border-left:4px solid
+             {% if cons.status == 'ACCEPTED' %}#3b82f6
+             {% elif cons.status == 'PRESCRIBED' %}#8b5cf6
+             {% else %}#10b981{% endif %};" data-case='{{ cons.to_dict() | tojson }}'>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:600; font-size:.9rem;">{{ cons.patient.name }}</div>
+              <div style="font-size:.78rem; color:var(--muted);">{{ cons.id }} · {{ cons.created_at.strftime('%d/%m
+                %H:%M') }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:.5rem;">
+              <span class="status-badge {{ cons.status|lower }}" style="font-size:.7rem;">
+                {% if cons.case_closed %}จบเคสแล้ว
+                {% elif cons.status == 'ACCEPTED' %}กำลังดูแล
+                {% elif cons.status == 'PRESCRIBED' %}สั่งยาแล้ว
+                {% else %}{{ cons.status }}{% endif %}
+              </span>
+              {% if cons.status == 'ACCEPTED' %}
+              <span style="font-size:.75rem; color:#3b82f6;">💬</span>
+              {% endif %}
+            </div>
+          </div>
+          <div
+            style="font-size:.8rem; color:#6b7280; margin-top:.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            {{ cons.symptoms[:70] }}...
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+
+  </div>
+
+  <!-- ── Right: Case Detail Panel ────────────────────────────────────── -->
+  <div id="case-detail" style="position:sticky; top:1rem;">
+    <article class="clinical-card" id="case-placeholder"
+      style="text-align:center; padding:3rem 2rem; color:var(--muted);">
+      <div style="font-size:3rem; margin-bottom:1rem;">👈</div>
+      <p>เลือกเคสจากรายการซ้ายเพื่อดูรายละเอียด</p>
+    </article>
+
+    <article class="clinical-card" id="case-content" style="display:none;">
+      <div class="card-heading" style="border-bottom:1px solid var(--border); margin-bottom:1rem;">
+        <div>
+          <span class="card-eyebrow" id="detail-eyebrow">Patient detail</span>
+          <h2 id="detail-patient-name">—</h2>
+        </div>
+        <span class="status-badge" id="detail-status">—</span>
+      </div>
+
+      <!-- Symptoms + Image -->
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:.8rem; font-weight:600; color:var(--muted); margin-bottom:.4rem;">อาการที่รายงาน</div>
+        <p id="detail-symptoms"
+          style="font-size:.9rem; color:#374151; padding:.75rem; background:#f9fafb; border-radius:8px; margin:0;"></p>
+        <div id="detail-image-wrap" style="margin-top:.75rem; display:none;">
+          <img id="detail-image" src="" alt="รูปอาการ"
+            style="max-width:100%; max-height:200px; border-radius:8px; border:1px solid var(--border); object-fit:contain;">
+        </div>
+      </div>
+
+      <!-- Allergy warning -->
+      <div id="detail-allergy"
+        style="display:none; background:#fef2f2; border:1px solid #fca5a5; border-radius:8px; padding:.75rem; margin-bottom:1rem; font-size:.85rem; color:#dc2626;">
+        ⚠️ <strong>ประวัติแพ้ยา:</strong> <span id="detail-allergy-list"></span>
+      </div>
+
+      <!-- AI case summary -->
+      <div style="margin-bottom:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+          <div style="font-size:.8rem; font-weight:600; color:var(--muted);">🤖 AI วิเคราะห์เคสก่อนตรวจ</div>
+          <button class="secondary-button compact-button" id="ai-btn" onclick="runAI()"
+            style="font-size:.75rem; padding:.3rem .75rem;">🧬 วิเคราะห์เคสด้วย AI</button>
+        </div>
+        <div id="ai-result" style="display:none;"></div>
+        <small style="display:block;color:var(--muted);margin-top:.4rem;">AI วิเคราะห์ความน่าจะเป็นของโรค แนะนำยา
+          และเสนอคำถามติดตาม — การวินิจฉัยและสั่งยาเป็นหน้าที่ของแพทย์</small>
+      </div>
+
+      <!-- Chat + Video + Rx -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.6rem;">
+        <button class="primary-button" id="chat-btn" onclick="openCaseChat()" style="background:#3b82f6;">
+          💬 แชท
+        </button>
+        <button class="primary-button" id="video-btn" onclick="startVideoCall()" style="background:#0ea5e9;">
+          📹 Video Call
+        </button>
+      </div>
+      <div id="rx-view-wrap" style="display:none;margin-bottom:.6rem;">
+        <a id="rx-view-link" href="#" target="_blank" class="secondary-button"
+          style="display:block;text-align:center;font-size:.8rem;">
+          📋 ดูใบสั่งยาดิจิทัล
+        </a>
+      </div>
+
+      <div id="case-action-bar" style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:1rem;">
+        <button class="primary-button" id="quick-prescribe-btn" type="button" onclick="openPrescribeSection()"
+          style="background:#10b981;">
+          💊 จ่ายยาให้คนไข้
+        </button>
+        <button class="secondary-button" id="complete-case-btn" type="button" onclick="completeCase()"
+          style="border-color:#ef4444;color:#dc2626;">
+          จบเคส
+        </button>
+      </div>
+
+      <!-- Prescribe Form (visible when ACCEPTED) -->
+      <div id="prescribe-section" style="border-top:1px solid var(--border); padding-top:1rem;">
+        <div style="font-size:.8rem; font-weight:600; color:var(--muted); margin-bottom:.75rem;">💊 สั่งยา</div>
+
+        <label style="display:block; margin-bottom:.75rem;">
+          <span style="font-size:.82rem; font-weight:600;">การวินิจฉัย</span>
+          <textarea id="diagnosis-input" rows="2" placeholder="ระบุการวินิจฉัยโรค..."
+            style="width:100%; margin-top:.3rem; border:1px solid var(--border); border-radius:8px; padding:.6rem; font-size:.85rem; font-family:inherit; resize:none;"></textarea>
+        </label>
+
+        <label style="display:block; margin-bottom:.75rem;">
+          <span style="font-size:.82rem; font-weight:600;">เลือกยา <span style="color:#ef4444;">*</span></span>
+          <select id="medicine-select"
+            style="width:100%; margin-top:.3rem; border:1px solid var(--border); border-radius:8px; padding:.6rem; font-size:.85rem;">
+            <option value="">— เลือกยา —</option>
+            {% for med in medicines %}
+            <option value="{{ med.id }}" data-purpose="{{ med.purpose }}" data-instruction="{{ med.instruction }}">
+              {{ med.name }} ({{ med.dosage }})
+            </option>
+            {% endfor %}
+          </select>
+          <div id="med-info" style="font-size:.78rem; color:#6d28d9; margin-top:.3rem; display:none;"></div>
+        </label>
+
+        <div style="margin-bottom:1rem;">
+          <span style="font-size:.82rem;font-weight:600;">ร้านใกล้ผู้ป่วยที่มียานี้</span>
+          <div id="interaction-box" style="display:none;margin-bottom:.6rem;"></div>
+        <div id="stock-check" style="font-size:.8rem;color:var(--muted);margin-top:.45rem;">
+            เลือกยาเพื่อดูสต็อกและระยะทางของร้านยา
+          </div>
+        </div>
+
+        <div id="ai-rec-box" style="display:none; margin-bottom:.75rem;">
+          <div style="font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:.4rem;">📋 สรุปเคส +
+            วิเคราะห์โรคและยา:</div>
+          <div id="ai-rec-text"></div>
+        </div>
+
+        <button class="primary-button" style="width:100%; background:#10b981;" id="prescribe-btn"
+          onclick="submitPrescription()">
+          ✅ สั่งยาให้ผู้ป่วย
+        </button>
+      </div>
+
+      <!-- If already prescribed -->
+      <div id="prescribed-info"
+        style="display:none; background:#f0fdf4; border-radius:8px; padding:1rem; border:1px solid #86efac;">
+        <div style="font-weight:600; color:#15803d; margin-bottom:.25rem;">✅ สั่งยาแล้ว</div>
+        <div id="prescribed-detail" style="font-size:.85rem; color:#374151;"></div>
+      </div>
+    </article>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let currentCase = null;
+  const escapeDoctorHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+  })[char]);
+
+  // ── Delegated click handler for case rows ─────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.case-row[data-case]').forEach(row => {
+      row.addEventListener('click', () => {
+        try {
+          const caseData = JSON.parse(row.dataset.case);
+          selectCase(caseData);
+        } catch (e) {
+          console.error('Failed to parse case data:', e);
+          showToast('ไม่สามารถโหลดข้อมูลเคสได้');
+        }
+      });
+    });
+  });
+
+  // ── Accept consultation ──────────────────────────────────────────────────
+  async function acceptCase(consId, btn) {
+    btn.disabled = true;
+    btn.textContent = 'กำลังรับ...';
+
+    try {
+      const res = await fetch(`/api/consultations/${consId}/accept`, { method: 'POST' });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message);
+
+      // Remove from pending list
+      document.getElementById(`pending-${consId}`)?.remove();
+
+      // Update counts
+      const count = document.getElementById('pending-count');
+      const badge = document.getElementById('pending-badge');
+      count.textContent = Math.max(0, parseInt(count.textContent) - 1);
+      badge.textContent = count.textContent;
+
+      showToast(`✅ รับเคส ${consId} แล้ว — ดูที่ "เคสของฉัน"`);
+      setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+      showToast(err.message || 'เกิดข้อผิดพลาด');
+      btn.disabled = false;
+      btn.textContent = 'รับเคส';
+    }
+  }
+
+  // ── Select case for detail view ──────────────────────────────────────────
+  function selectCase(cons) {
+    currentCase = cons;
+
+    // Highlight selected row
+    document.querySelectorAll('.case-row').forEach(r => {
+      r.style.background = 'var(--surface)';
+      r.style.boxShadow = 'none';
+    });
+    const row = document.getElementById(`case-${cons.id}`);
+    if (row) {
+      row.style.background = '#eef2ff';
+      row.style.boxShadow = '0 0 0 2px #4f46e5';
+    }
+
+    // Show detail panel
+    document.getElementById('case-placeholder').style.display = 'none';
+    document.getElementById('case-content').style.display = 'block';
+
+    // Fill detail
+    document.getElementById('detail-patient-name').textContent = cons.patient_name;
+    document.getElementById('detail-eyebrow').textContent = cons.id;
+    document.getElementById('detail-symptoms').textContent = cons.symptoms;
+
+    const statusEl = document.getElementById('detail-status');
+    statusEl.textContent = cons.status;
+    statusEl.className = `status-badge ${cons.status.toLowerCase()}`;
+
+    // Image
+    const imgWrap = document.getElementById('detail-image-wrap');
+    const img = document.getElementById('detail-image');
+    if (cons.image_url) {
+      img.src = cons.image_url;
+      imgWrap.style.display = 'block';
+    } else {
+      imgWrap.style.display = 'none';
+    }
+
+    // Allergy
+    document.getElementById('detail-allergy').style.display = 'none';
+
+    // AI result reset
+    document.getElementById('ai-result').style.display = 'none';
+    document.getElementById('ai-rec-box').style.display = 'none';
+
+    // Prescribe section vs prescribed info
+    const prescribeSection = document.getElementById('prescribe-section');
+    const prescribedInfo = document.getElementById('prescribed-info');
+    const actionBar = document.getElementById('case-action-bar');
+    const quickPrescribeBtn = document.getElementById('quick-prescribe-btn');
+    const completeCaseBtn = document.getElementById('complete-case-btn');
+
+    actionBar.style.display = cons.case_closed ? 'none' : 'grid';
+    completeCaseBtn.style.display = cons.case_closed ? 'none' : 'block';
+    quickPrescribeBtn.style.display =
+      (!cons.case_closed && cons.status === 'ACCEPTED') ? 'block' : 'none';
+    document.getElementById('chat-btn').style.display = cons.case_closed ? 'none' : 'block';
+    document.getElementById('video-btn').style.display = cons.case_closed ? 'none' : 'block';
+    updateRxLink(cons);
+
+    if (cons.status === 'ACCEPTED' && !cons.case_closed) {
+      prescribeSection.style.display = 'block';
+      prescribedInfo.style.display = 'none';
+      document.getElementById('diagnosis-input').value = '';
+      document.getElementById('medicine-select').value = '';
+      document.getElementById('med-info').style.display = 'none';
+      document.getElementById('stock-check').textContent = 'เลือกยาเพื่อดูสต็อกและระยะทางของร้านยา';
+    } else if (cons.status === 'PRESCRIBED' || cons.status === 'CONFIRMED') {
+      prescribeSection.style.display = 'none';
+      prescribedInfo.style.display = 'block';
+      const medName = cons.medicine?.name || '—';
+      const phName = cons.pharmacy?.name || 'รอผู้ป่วยเลือกร้าน';
+      document.getElementById('prescribed-detail').innerHTML =
+        `<strong>ยา:</strong> ${medName}<br><strong>ร้านยา:</strong> ${phName}<br><strong>วินิจฉัย:</strong> ${cons.diagnosis || '—'}`;
+    } else {
+      prescribeSection.style.display = 'none';
+      prescribedInfo.style.display = 'none';
+    }
+  }
+
+  // ── Open chat ────────────────────────────────────────────────────────────
+  function openCaseChat() {
+    if (!currentCase) return;
+    openChat(currentCase.id, currentCase.patient_name, `เคส ${currentCase.id}`);
+  }
+
+  function openPrescribeSection() {
+    const section = document.getElementById('prescribe-section');
+    if (!currentCase || currentCase.case_closed || currentCase.status !== 'ACCEPTED') return;
+    section.style.display = 'block';
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => document.getElementById('diagnosis-input').focus(), 350);
+  }
+
+  async function completeCase() {
+    if (!currentCase || currentCase.case_closed) return;
+    const hasPrescription = Boolean(currentCase.medicine);
+    const message = hasPrescription
+      ? 'จบเคสนี้หรือไม่? ใบสั่งยายังอยู่ให้ผู้ป่วยเลือกซื้อและเลือกร้านยาได้'
+      : 'จบเคสนี้โดยไม่มีใบสั่งยาหรือไม่?';
+    if (!window.confirm(message)) return;
+    const btn = document.getElementById('complete-case-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังจบเคส...';
+    try {
+      const res = await fetch(`/api/consultations/${currentCase.id}/complete`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      showToast('จบเคสเรียบร้อยแล้ว');
+      setTimeout(() => location.reload(), 900);
+    } catch (error) {
+      showToast(error.message || 'ไม่สามารถจบเคสได้');
+      btn.disabled = false;
+      btn.textContent = 'จบเคส';
+    }
+  }
+
+  // ── Run AI analysis ──────────────────────────────────────────────────────
+  function showAiError(msg, canReset) {
+    document.querySelectorAll('.ai-warn-banner').forEach(el => el.remove());
+    const box = document.getElementById('ai-result');
+    const warn = document.createElement('div');
+    warn.className = 'ai-warn-banner';
+    warn.style.cssText = 'font-size:.75rem;color:#b45309;margin-top:.4rem;padding:.5rem .75rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;display:flex;align-items:center;gap:.5rem;';
+    warn.innerHTML = `<span style="flex:1">⚠️ ${escapeDoctorHtml(msg)}</span>`;
+    if (canReset) {
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = 'ล้าง pause & ลองใหม่';
+      resetBtn.style.cssText = 'font-size:.72rem;padding:.25rem .6rem;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;';
+      resetBtn.onclick = async () => {
+        resetBtn.disabled = true; resetBtn.textContent = 'กำลังล้าง...';
+        await fetch('/api/ai/reset-pause', { method: 'POST' });
+        warn.remove();
+        runAI();
+      };
+      warn.appendChild(resetBtn);
+    }
+    box.parentNode.insertBefore(warn, box.nextSibling);
+    setTimeout(() => warn.remove(), 15000);
+  }
+
+  // ── Markdown → HTML renderer (minimal, for AI output) ────────────────────
+  function renderMd(text) {
+    // Section headers with emoji (e.g. "🔍 อาการหลัก:")
+    const sectionColors = {
+      '🔍': { bg: '#f0fdf4', border: '#86efac', color: '#166534' },
+      '⚠️': { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b' },
+      '❓': { bg: '#eff6ff', border: '#93c5fd', color: '#1e40af' },
+      '📋': { bg: '#f5f3ff', border: '#c4b5fd', color: '#5b21b6' },
+      '📌': { bg: '#f0fdf4', border: '#86efac', color: '#166534' },
+      '💊': { bg: '#fef3c7', border: '#fcd34d', color: '#92400e' },
+      '🚨': { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b' },
+      '📊': { bg: '#f0f9ff', border: '#7dd3fc', color: '#075985' },
+      '❗': { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b' },
+    };
+
+    const lines = text.split('\n');
+    let html = '';
+    let inSection = false;
+    let sectionStyle = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      if (!line) { if (inSection) html += ''; continue; }
+
+      // Detect section header: starts with emoji + text ending with colon
+      const emojiMatch = line.match(/^([\u{1F300}-\u{1FAFF}⚠️❓❗📌📋💊🚨📊🔍][\uFE0F]?)\s+(.+?)[:：]?\s*$/u);
+      const isHeader = emojiMatch && (line.endsWith(':') || line.endsWith('：'));
+
+      if (isHeader) {
+        if (inSection) html += '</div>';
+        const emoji = emojiMatch[1];
+        const c = sectionColors[emoji] || { bg: '#f8fafc', border: '#e2e8f0', color: '#374151' };
+        sectionStyle = `color:${c.color};`;
+        html += `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:8px;padding:.65rem .8rem;margin-bottom:.5rem;">`;
+        html += `<div style="font-size:.78rem;font-weight:700;${sectionStyle}margin-bottom:.3rem;">${line}</div>`;
+        inSection = true;
+        continue;
+      }
+
+      // Bold **text**
+      line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      // Italic *text*
+      line = line.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      // Bullet points
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        const content = line.replace(/^[-•]\s+/, '');
+        html += `<div style="font-size:.82rem;line-height:1.55;${sectionStyle}padding:.1rem 0 .1rem .7rem;border-left:2px solid currentColor;margin-bottom:.2rem;opacity:.9;">${content}</div>`;
+      } else if (line.match(/^\d+\.\s/)) {
+        // Numbered list
+        html += `<div style="font-size:.82rem;line-height:1.55;${sectionStyle}margin-bottom:.2rem;">${line}</div>`;
+      } else {
+        html += `<div style="font-size:.82rem;line-height:1.55;${sectionStyle}margin-bottom:.2rem;">${line}</div>`;
+      }
+    }
+    if (inSection) html += '</div>';
+    return html || `<div style="font-size:.82rem;color:#6b7280;">${text}</div>`;
+  }
+
+  async function runAI() {
+    if (!currentCase) return;
+    const btn = document.getElementById('ai-btn');
+    btn.disabled = true;
+    btn.textContent = 'AI กำลังคิด...';
+    const box = document.getElementById('ai-result');
+    box.style.display = 'none';
+    document.getElementById('ai-rec-box').style.display = 'none';
+    document.querySelectorAll('.ai-warn-banner').forEach(el => el.remove());
+
+    try {
+      const r1 = await fetch('/api/ai/analyze-symptoms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symptoms: currentCase.symptoms,
+          patient_id: currentCase.patient_id,
+          image_url: currentCase.image_url
+        })
+      });
+      const d1 = await r1.json();
+      if (d1.analysis) {
+        box.innerHTML = renderMd(d1.analysis);
+        const isGroq = d1.source === 'gemini';
+        box.style.display = 'block';
+        if (!isGroq && d1.ai_error) {
+          const isPaused = d1.ai_error.includes('PAUSED');
+          const isNotConfigured = d1.ai_error.includes('NOT_CONFIGURED');
+          showAiError(
+            isPaused
+              ? `AI ถูก pause ชั่วคราว (${d1.ai_error}) — กด "ล้าง pause" เพื่อลองใหม่`
+              : isNotConfigured
+                ? `ยังไม่ได้ตั้งค่า API Key — กรุณาใส่ GROQ_API_KEY ใน app.py แล้ว restart`
+                : `AI error: ${d1.ai_error}`,
+            isPaused
+          );
+        }
+      }
+
+      const r2 = await fetch('/api/ai/case-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symptoms: currentCase.symptoms,
+          patient_id: currentCase.patient_id,
+          image_url: currentCase.image_url
+        })
+      });
+      const d2 = await r2.json();
+
+      if (d2.patient_allergies?.length) {
+        document.getElementById('detail-allergy').style.display = 'block';
+        document.getElementById('detail-allergy-list').textContent =
+          d2.patient_allergies.join(', ');
+      }
+      if (d2.summary) {
+        document.getElementById('ai-rec-text').innerHTML = renderMd(d2.summary);
+        document.getElementById('ai-rec-box').style.display = 'block';
+      }
+
+      showToast(d1.source === 'gemini' ? 'AI วิเคราะห์เคสเสร็จแล้ว ✓' : 'วิเคราะห์เคส (rule-based — AI ไม่พร้อมใช้งาน)');
+    } catch (err) {
+      showToast('ไม่สามารถวิเคราะห์ได้ ' + (err.message || ''));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🧬 วิเคราะห์เคสด้วย AI';
+    }
+  }
+
+  // ── Medicine select info ──────────────────────────────────────────────────
+  function showMedInfo(opt) {
+    const info = document.getElementById('med-info');
+    if (!opt || !opt.value) { info.style.display = 'none'; return; }
+    const purpose = opt.dataset.purpose || '';
+    const inst = opt.dataset.instruction || '';
+    info.textContent = `${purpose}${purpose && inst ? ' · ' : ''}${inst}`;
+    info.style.display = purpose || inst ? 'block' : 'none';
+
+    loadNearbyMedicineStock(opt.value);
+  }
+
+  document.getElementById('medicine-select').addEventListener('change', function () {
+    showMedInfo(this.options[this.selectedIndex]);
+    const medId = this.value;
+    if (medId && currentCase) {
+      loadNearbyMedicineStock(medId);
+      checkDrugInteraction(medId, currentCase.patient_id);
+    }
+  });
+
+  async function checkDrugInteraction(medId, patientId) {
+    const box = document.getElementById('interaction-box');
+    if (!box) return;
+    box.innerHTML = '<span style="color:#9ca3af;font-size:.78rem;">🔍 กำลังตรวจสอบ drug interaction...</span>';
+    box.style.display = 'block';
+    try {
+      const r = await fetch('/api/drug-interaction-check', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ new_medicine_id: medId, patient_id: patientId })
+      });
+      const d = await r.json();
+      if (d.safe) {
+        const meds = d.current_meds?.length ? `ยาที่ใช้อยู่: ${d.current_meds.join(', ')}` : 'ไม่มีประวัติยาล่าสุด';
+        box.innerHTML = `<span style="color:#059669;font-size:.78rem;">✅ ไม่พบ interaction — ${escapeDoctorHtml(meds)}</span>`;
+      } else {
+        const bg = d.level === 'DANGER' ? '#fef2f2' : '#fef3c7';
+        const border = d.level === 'DANGER' ? '#fca5a5' : '#fcd34d';
+        const color  = d.level === 'DANGER' ? '#991b1b' : '#92400e';
+        box.innerHTML = `<div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:.6rem .8rem;font-size:.8rem;color:${color};">${escapeDoctorHtml(d.warning)}</div>`;
+      }
+    } catch {
+      box.innerHTML = '<span style="color:#9ca3af;font-size:.78rem;">ไม่สามารถตรวจสอบได้</span>';
+    }
+  }
+
+  let selectedPharmacyId = null;
+
+  async function loadNearbyMedicineStock(medId) {
+    if (!medId || !currentCase) return;
+    const el = document.getElementById('stock-check');
+    el.innerHTML = '<span style="color:#9ca3af;font-size:.8rem;">กำลังค้นหาร้านใกล้ผู้ป่วย...</span>';
+    selectedPharmacyId = null;
+    try {
+      const url = `/api/pharmacies/nearby?medicine_id=${medId}&patient_id=${currentCase.patient_id}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const list = await res.json();
+      if (!Array.isArray(list) || !list.length) {
+        el.innerHTML = '<span style="color:#dc2626;font-size:.8rem;">ไม่พบร้านยาใกล้ผู้ป่วยที่มียานี้</span>';
+        return;
+      }
+      // Auto-select nearest pharmacy
+      selectedPharmacyId = list[0].id;
+      el.innerHTML = list.slice(0, 3).map((item, index) => `
+        <div data-ph-id="${item.id}" onclick="selectPharmacy(this, ${item.id})"
+             class="${index === 0 ? 'selected' : ''}"
+             style="display:flex;justify-content:space-between;gap:.5rem;padding:.5rem .65rem;
+                    margin-bottom:.3rem;border:1.5px solid ${index === 0 ? '#6366f1' : 'var(--border)'};
+                    border-radius:8px;background:${index === 0 ? '#ede9fe' : '#fff'};cursor:pointer;">
+          <span>
+            <strong style="font-size:.82rem;">${index === 0 ? '📍 ใกล้สุด · ' : ''}${item.name}</strong><br>
+            <small style="color:#6b7280;">${item.distance} กม. · คงเหลือ ${item.stock} เม็ด</small>
+          </span>
+          <strong style="color:#4f46e5;font-size:.88rem;">฿${item.price}</strong>
+        </div>`).join('');
+    } catch (e) {
+      console.warn('stock check error:', e);
+      el.innerHTML = '<span style="color:#f59e0b;font-size:.8rem;">⚠️ ไม่สามารถตรวจสอบสต็อก (ระบบยังใช้งานได้)</span>';
+    }
+  }
+
+  function selectPharmacy(el, phId) {
+    selectedPharmacyId = phId;
+    document.querySelectorAll('#stock-check [data-ph-id]').forEach(d => {
+      d.classList.remove('selected');
+      d.style.borderColor = 'var(--border)';
+      d.style.background = '#fff';
+    });
+    el.classList.add('selected');
+    el.style.borderColor = '#6366f1';
+    el.style.background = '#ede9fe';
+  }
+
+  // ── Video Call ────────────────────────────────────────────────────────────
+  function startVideoCall() {
+    if (!currentCase) return;
+    window.open(`/video/${currentCase.id}`, '_blank', 'width=1100,height=700');
+  }
+
+  // ── Show Rx link when case is prescribed ──────────────────────────────────
+  function updateRxLink(cons) {
+    const wrap = document.getElementById('rx-view-wrap');
+    const link = document.getElementById('rx-view-link');
+    if (cons && cons.medicine) {
+      link.href = `/prescription/${cons.id}`;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+
+  // ── Submit prescription ───────────────────────────────────────────────────
+  async function submitPrescription() {
+    if (!currentCase) return;
+
+    const medId = parseInt(document.getElementById('medicine-select').value, 10);
+    const diagnosis = document.getElementById('diagnosis-input').value.trim();
+
+    if (!medId || isNaN(medId)) { showToast('กรุณาเลือกยาก่อน'); return; }
+
+    // Get selected pharmacy id if available
+    const phId = selectedPharmacyId || null;
+
+    const btn = document.getElementById('prescribe-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง...';
+
+    try {
+      const res = await fetch(`/api/consultations/${currentCase.id}/prescribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ medicine_id: medId, pharmacy_id: phId, diagnosis })
+      });
+
+      let d;
+      try { d = await res.json(); } catch { d = { message: `HTTP ${res.status}` }; }
+
+      if (!res.ok) throw new Error(d.message || `เกิดข้อผิดพลาด (${res.status})`);
+
+      showToast('✅ จ่ายยาแล้ว ผู้ป่วยสามารถเลือกร้านและวิธีรับยาได้');
+      setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+      console.error('prescribe error:', err);
+      showToast('❌ ' + (err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'));
+      btn.disabled = false;
+      btn.textContent = '✅ สั่งยาให้ผู้ป่วย';
+    }
+  }
+
+  // ── Receive new consultation via SocketIO ─────────────────────────────────
+  function onNewConsultation(data) {
+    const list = document.getElementById('pending-list');
+    const empty = document.getElementById('empty-pending');
+    if (empty) empty.remove();
+
+    const div = document.createElement('div');
+    div.className = 'pending-row';
+    div.id = `pending-${data.id}`;
+    div.style.cssText = 'border:1px solid var(--border); border-radius:10px; padding:.875rem 1rem; background:var(--surface); border-left:4px solid #f59e0b; animation: fadeIn .3s;';
+    div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem;">
+      <div>
+        <div style="font-family:monospace; font-size:.75rem; color:var(--muted);">${data.id}</div>
+        <div style="font-weight:700; font-size:.95rem; margin:.15rem 0;">🆕 ${data.patient_name}</div>
+        <p style="font-size:.82rem; color:#374151; margin:0;">${data.symptoms}</p>
+      </div>
+      <button class="primary-button compact-button" type="button"
+              onclick="acceptCase('${data.id}', this)" style="flex-shrink:0;">รับเคส</button>
+    </div>`;
+    list.prepend(div);
+
+    // Update count
+    const count = document.getElementById('pending-count');
+    const badge = document.getElementById('pending-badge');
+    count.textContent = parseInt(count.textContent || '0') + 1;
+    badge.textContent = count.textContent;
+  }
+
+  // Most recent active chat
+  function openMostRecentChat() {
+    {% for cons in my_cases %}
+    {% if cons.status == 'ACCEPTED' %}
+    openChat('{{ cons.id }}', '{{ cons.patient.name }}', 'เคส {{ cons.id }}');
+    return;
+    {% endif %}
+    {% endfor %}
+    showToast('ไม่มีเคสที่ active อยู่');
+  }
+</script>
+<style>
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+{% endblock %}

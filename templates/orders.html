@@ -1,0 +1,79 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "orders" %}
+{% block title %}ประวัติคำสั่งซื้อ | MediLink AI{% endblock %}
+
+{% block dashboard_content %}
+<section class="dashboard-heading">
+  <div>
+    <span class="clinical-kicker">Order history</span>
+    <h1>ประวัติคำสั่งซื้อ</h1>
+    <p>ดูรายการยา ผลิตภัณฑ์สุขภาพ และสถานะคำสั่งซื้อที่ผ่านมา</p>
+  </div>
+</section>
+
+{% for order in medicine_orders %}
+<section class="clinical-card" style="padding:1.2rem;margin-bottom:1rem;">
+  <div style="display:flex;justify-content:space-between;gap:1rem;">
+    <div>
+      <strong>{{ order.id }}</strong>
+      <small style="display:block;color:var(--muted);">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+      <small style="display:block;color:var(--muted);margin-top:.25rem;">
+        {{ order.pharmacy.name if order.pharmacy else 'ไม่ระบุร้าน' }} ·
+        {% if order.delivery_type == 'pickup' %}รับหน้าร้าน
+        {% elif order.delivery_type == 'express' %}ส่งด่วน
+        {% else %}ส่งมาตรฐาน{% endif %}
+      </small>
+    </div>
+    <div style="text-align:right;">
+      <span class="status-badge {{ order.status|lower }}">{{ order.status }}</span>
+      <strong style="display:block;color:var(--primary);margin-top:.3rem;">฿{{ '%.0f'|format(order.total) }}</strong>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;padding-top:.8rem;font-size:.85rem;">
+    <span>
+      {% if order.medicine %}{{ order.medicine.name }}
+      {% elif order.consultation and order.consultation.medicine %}{{ order.consultation.medicine.name }}
+      {% else %}ไม่พบรายละเอียดรายการยา (ออเดอร์เดิม){% endif %}
+      × {{ order.quantity or 1 }}
+    </span>
+    <span>฿{{ '%.0f'|format(order.total) }}</span>
+  </div>
+</section>
+{% endfor %}
+
+{% for order in orders %}
+<section class="clinical-card" style="padding:1.2rem;margin-bottom:1rem;">
+  <div style="display:flex;justify-content:space-between;gap:1rem;">
+    <div>
+      <strong>{{ order.id }}</strong>
+      <small style="display:block;color:var(--muted);">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+      <small style="display:block;color:var(--muted);margin-top:.25rem;">
+        {{ order.pharmacy.name if order.pharmacy else 'ไม่ระบุร้าน' }} ·
+        {% if order.delivery_type == 'pickup' %}รับหน้าร้าน
+        {% elif order.delivery_type == 'express' %}ส่งด่วน
+        {% else %}ส่งมาตรฐาน{% endif %}
+      </small>
+    </div>
+    <div style="text-align:right;">
+      <span class="status-badge {{ order.status|lower }}">{{ order.status }}</span>
+      <strong style="display:block;color:var(--primary);margin-top:.3rem;">฿{{ '%.0f'|format(order.total) }}</strong>
+    </div>
+  </div>
+  <div style="margin-top:.8rem;">
+    {% for item in order.items %}
+    <div style="display:flex;justify-content:space-between;padding:.35rem 0;font-size:.85rem;">
+      <span>{{ item.product.name }} × {{ item.quantity }}</span>
+      <span>฿{{ '%.0f'|format(item.unit_price * item.quantity) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+{% if not orders and not medicine_orders %}
+<section class="clinical-card" style="padding:3rem;text-align:center;">
+  <h2>ยังไม่มีประวัติคำสั่งซื้อ</h2>
+  <a class="primary-button" href="{{ url_for('medicine_finder') }}">ค้นหายาใกล้ฉัน</a>
+</section>
+{% endif %}
+{% endblock %}

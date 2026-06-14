@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}สมัครสมาชิกสำเร็จ | Medilink{% endblock %}
+{% block body_class %}auth-body completion-body{% endblock %}
+
+{% block body %}
+<main class="completion-shell">
+  <a class="clinical-brand centered-brand" href="{{ url_for('dashboard') }}">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 3v18M3 12h18" />
+      </svg>
+    </span>
+    <span>Health<span>Connect</span></span>
+  </a>
+
+  <section class="completion-card">
+    <div class="completion-orbit" aria-hidden="true">
+      <span class="completion-check">
+        <svg viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      </span>
+    </div>
+    <span class="clinical-kicker success-kicker">Registration completed</span>
+    <h1>สร้างโปรไฟล์สุขภาพสำเร็จ</h1>
+    <p>
+      บัญชีของคุณพร้อมเชื่อมต่อกับแพทย์และร้านขายยาที่ได้รับการรับรองแล้ว
+    </p>
+
+    <div class="completion-details">
+      <div>
+        <span>บัญชีผู้ใช้</span>
+        <strong>{{ current_user.email if current_user else session.get("user", {}).get("email", "—") }}</strong>
+      </div>
+      <div>
+        <span>ประวัติแพ้ยา</span>
+        <strong>
+          {% if profile.allergies %}
+          บันทึก {{ profile.allergies|length }} รายการ
+          {% else %}
+          ไม่พบรายการที่ระบุ
+          {% endif %}
+        </strong>
+      </div>
+      <div>
+        <span>ตำแหน่งร้านยา</span>
+        <strong>
+          {% if profile.has_location %}เปิดใช้งานแล้ว{% else %}เพิ่มภายหลัง{% endif %}
+        </strong>
+      </div>
+    </div>
+
+    <div class="next-step-note">
+      <span>
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </span>
+      <div>
+        <strong>ข้อมูลของคุณพร้อมสำหรับการดูแล</strong>
+        <p>คุณสามารถแก้ไขข้อมูลสุขภาพได้ตลอดเวลาจากหน้าแดชบอร์ด</p>
+      </div>
+    </div>
+
+    <a class="primary-button completion-button" href="{{ url_for('tos_page', next='/dashboard') }}">
+      ยอมรับข้อกำหนดและเริ่มใช้งาน
+      <svg viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </a>
+  </section>
+  <p class="completion-footer">
+    Medilink Demo · โครงงาน Hackathon ระดับมัธยมศึกษา
+  </p>
+</main>
+{% endblock %}

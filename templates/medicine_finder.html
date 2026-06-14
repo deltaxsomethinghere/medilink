@@ -1,0 +1,422 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "medicine_finder" %}
+{% block title %}ค้นหายาใกล้ฉัน | MediLink AI{% endblock %}
+
+{% block dashboard_content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  /* ── Layout ── */
+  .mf-wrap { display:grid; grid-template-columns:360px 1fr; height:calc(100vh - 120px); overflow:hidden; margin:-1rem; }
+  .mf-left  { display:flex; flex-direction:column; border-right:1px solid #e5e7eb; background:#fff; overflow:hidden; }
+  .mf-map   { position:relative; }
+  #map      { width:100%; height:100%; }
+
+  /* ── Search bar ── */
+  .search-bar { padding:.85rem 1rem; border-bottom:1px solid #f0f0f0; flex-shrink:0; }
+  .search-bar h2 { font-size:.9rem; font-weight:700; color:#111; margin:0 0 .6rem; }
+  .search-row { display:flex; gap:.4rem; }
+  .search-row input { flex:1; padding:.55rem .8rem; border:1px solid #e5e7eb; border-radius:8px; font-size:.85rem; outline:none; }
+  .search-row input:focus { border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.12); }
+  .search-row button { padding:.55rem .9rem; background:#6366f1; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:600; cursor:pointer; }
+  .tab-row { display:flex; border-bottom:1px solid #f0f0f0; flex-shrink:0; }
+  .tab { flex:1; padding:.6rem; text-align:center; font-size:.8rem; font-weight:600; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active { color:#6366f1; border-color:#6366f1; }
+
+  /* ── Scrollable results ── */
+  .mf-results { flex:1; overflow-y:auto; padding:.5rem; }
+
+  /* ── Medicine card ── */
+  .med-card { border:1px solid #e5e7eb; border-radius:11px; padding:.8rem; margin-bottom:.5rem; cursor:pointer; transition:border-color .15s; }
+  .med-card:hover,.med-card.sel { border-color:#6366f1; background:#fafafa; }
+  .med-name { font-size:.9rem; font-weight:700; color:#111; margin-bottom:.15rem; }
+  .med-meta { font-size:.75rem; color:#6b7280; margin-bottom:.4rem; }
+  .med-badge { display:inline-block; background:#ede9fe; color:#6d28d9; font-size:.7rem; font-weight:600; padding:2px 7px; border-radius:5px; }
+  .ph-row { display:flex; align-items:center; gap:.4rem; padding:.35rem .5rem; border-radius:7px; margin-top:.3rem; font-size:.78rem; background:#f9fafb; cursor:pointer; }
+  .ph-row:hover { background:#f3f4f6; }
+  .ph-row-name { flex:1; font-weight:600; color:#374151; }
+  .ph-dist { color:#6b7280; white-space:nowrap; }
+  .ph-qty  { color:#059669; font-weight:700; white-space:nowrap; }
+  .ph-price{ color:#6366f1; font-weight:700; white-space:nowrap; }
+
+  /* ── Pharmacy list card ── */
+  .phar-card { border:1px solid #e5e7eb; border-radius:11px; padding:.85rem; margin-bottom:.5rem; cursor:pointer; }
+  .phar-card:hover { border-color:#6366f1; background:#fafafa; }
+  .phar-name { font-size:.9rem; font-weight:700; color:#111; }
+  .phar-addr { font-size:.75rem; color:#6b7280; margin:.15rem 0 .4rem; }
+  .star { color:#f59e0b; font-size:.78rem; }
+  .tag-pill { display:inline-block; font-size:.68rem; padding:2px 6px; border-radius:4px; margin-right:3px; }
+  .tag-express { background:#fef3c7; color:#92400e; }
+  .tag-standard { background:#eff6ff; color:#1e40af; }
+  .tag-pickup { background:#f0fdf4; color:#166534; }
+  .med-count { font-size:.75rem; color:#6366f1; font-weight:600; margin-top:.3rem; }
+
+  /* ── Detail panel (right side floating over map) ── */
+  .detail-panel { position:absolute; top:0; right:0; width:360px; height:100%; background:#fff; box-shadow:-4px 0 20px rgba(0,0,0,.1); display:flex; flex-direction:column; z-index:800; transform:translateX(100%); transition:transform .25s; }
+  .detail-panel.open { transform:translateX(0); }
+  .detail-header { padding:1rem 1.1rem; border-bottom:1px solid #f0f0f0; display:flex; align-items:flex-start; gap:.6rem; flex-shrink:0; }
+  .detail-header button { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#6b7280; line-height:1; margin-top:.1rem; flex-shrink:0; }
+  .detail-ph-name { font-size:1rem; font-weight:700; color:#111; margin:0 0 .15rem; }
+  .detail-ph-sub  { font-size:.78rem; color:#6b7280; margin:0; }
+  .detail-body { flex:1; overflow-y:auto; padding:.75rem; }
+  .stock-item { border:1px solid #e5e7eb; border-radius:10px; padding:.8rem; margin-bottom:.55rem; }
+  .stock-name { font-size:.88rem; font-weight:700; color:#111; margin-bottom:.15rem; }
+  .stock-purpose { font-size:.75rem; color:#6b7280; margin-bottom:.4rem; line-height:1.4; }
+  .stock-footer { display:flex; align-items:center; gap:.5rem; }
+  .stock-qty { font-size:.78rem; color:#059669; font-weight:600; }
+  .stock-price { font-size:.95rem; font-weight:700; color:#6366f1; }
+  .add-btn { margin-left:auto; padding:.35rem .75rem; background:#6366f1; color:#fff; border:none; border-radius:7px; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .add-btn:hover { background:#4f46e5; }
+  .delivery-chips { display:flex; gap:.35rem; padding:.6rem .75rem; border-top:1px solid #f0f0f0; flex-shrink:0; }
+  .d-chip { flex:1; text-align:center; padding:.4rem .3rem; border-radius:8px; font-size:.72rem; font-weight:600; cursor:pointer; border:1.5px solid transparent; }
+  .d-chip.pickup   { background:#f0fdf4; color:#166534; border-color:#86efac; }
+  .d-chip.express  { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
+  .d-chip.standard { background:#eff6ff; color:#1e40af; border-color:#93c5fd; }
+  .d-chip.active   { filter:brightness(.9); box-shadow:0 0 0 2px rgba(0,0,0,.15); }
+
+  /* ── Map button ── */
+  .loc-btn { position:absolute; top:10px; right:10px; z-index:700; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:.45rem .8rem; font-size:.8rem; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .show-all-btn { position:absolute; top:10px; left:10px; z-index:700; background:#6366f1; color:#fff; border:none; border-radius:8px; padding:.45rem .85rem; font-size:.8rem; cursor:pointer; font-weight:600; }
+  .no-results { text-align:center; padding:2rem 1rem; color:#9ca3af; font-size:.85rem; }
+  .ai-hint { background:#ede9fe; border:1px solid #c4b5fd; border-radius:9px; padding:.65rem .9rem; margin-bottom:.6rem; font-size:.78rem; color:#5b21b6; }
+  .ai-hint a { color:#7c3aed; font-weight:600; text-decoration:none; }
+  .loading { text-align:center; padding:1.5rem; color:#9ca3af; font-size:.82rem; }
+
+  /* ── Mobile Responsive ── */
+  @media(max-width:820px) {
+    .mf-wrap { grid-template-columns:1fr; height:auto; margin:0; overflow:visible; }
+    .mf-left { border-right:none; border-bottom:1px solid #e5e7eb; max-height:none; }
+    .mf-results { max-height:45vh; }
+    .mf-map { height:45vh; min-height:280px; }
+    .detail-panel { position:fixed; inset:56px 0 0 auto; width:100%; height:calc(100dvh - 56px); }
+  }
+  @media(max-width:480px) {
+    .search-bar { padding:.65rem .75rem; }
+    .search-bar h2 { font-size:.82rem; margin-bottom:.4rem; }
+    .search-row { flex-direction:column; }
+    .search-row input { width:100%; font-size:.8rem; padding:.5rem .7rem; }
+    .search-row button { width:100%; padding:.55rem .75rem; font-size:.78rem; }
+    .tab { font-size:.72rem; padding:.5rem; }
+    .med-card { padding:.65rem; }
+    .med-name { font-size:.82rem; }
+    .ph-row { display:grid; grid-template-columns:1fr auto; gap:.2rem .45rem; align-items:start; }
+    .ph-row-name { grid-column:1 / -1; }
+    .ph-dist,.ph-qty,.ph-price { white-space:normal; }
+    .phar-card { padding:.7rem; }
+    .phar-name { font-size:.82rem; }
+    .mf-results { max-height:42vh; }
+    .mf-map { height:42vh; min-height:240px; }
+    .loc-btn, .show-all-btn { top:8px; font-size:.72rem; padding:.35rem .6rem; }
+    .loc-btn { right:8px; }
+    .show-all-btn { left:8px; max-width:44%; }
+    .delivery-chips { flex-wrap:wrap; }
+    .d-chip { flex:1 1 calc(50% - .35rem); }
+  }
+</style>
+
+<div class="mf-wrap">
+  <!-- Left sidebar -->
+  <div class="mf-left">
+    <div class="search-bar">
+      <h2>🔍 ค้นหายาและร้านยาใกล้คุณ</h2>
+      <div class="search-row">
+        <input id="q" type="text" placeholder="ชื่อยา เช่น Paracetamol, Cetirizine..." onkeydown="if(event.key==='Enter') search()">
+        <button onclick="search()">ค้นหา</button>
+      </div>
+    </div>
+    <div class="tab-row">
+      <div class="tab active" id="tab-med" onclick="switchTab('med')">💊 ค้นหายา</div>
+      <div class="tab" id="tab-ph" onclick="switchTab('ph')">🏪 ร้านยาทั้งหมด</div>
+    </div>
+    <div class="mf-results" id="results">
+      <div class="ai-hint">💡 ไม่แน่ใจชื่อยา? <a href="/ai-doctor">ปรึกษา AI Doctor</a> เพื่อรับคำแนะนำก่อน</div>
+      <div class="no-results">พิมพ์ชื่อยา หรือสลับไปแท็บ "ร้านยา" เพื่อดูร้านทั้งหมด</div>
+    </div>
+  </div>
+
+  <!-- Map area -->
+  <div class="mf-map">
+    <button class="loc-btn" onclick="locateMe()">📍 ตำแหน่งของฉัน</button>
+    <button class="show-all-btn" onclick="showAllPharmacies()">🏪 ดูร้านทั้งหมด</button>
+    <div id="map"></div>
+
+    <!-- Detail panel (slides in from right) -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="detail-header">
+        <button onclick="closeDetail()">✕</button>
+        <div>
+          <p class="detail-ph-name" id="dp-name">—</p>
+          <p class="detail-ph-sub" id="dp-sub">—</p>
+        </div>
+      </div>
+      <div class="delivery-chips" id="dp-chips"></div>
+      <div class="detail-body" id="dp-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let map, userMarker;
+let userLat = 13.7563, userLng = 100.5018;
+let markers = [];
+let allPharmacies = [];
+let currentTab = 'med';
+let selectedDelivery = 'pickup';
+
+// ── Init map ─────────────────────────────────────────────────────────────────
+map = L.map('map', { zoomControl: true }).setView([userLat, userLng], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors', maxZoom: 19
+}).addTo(map);
+
+const userIcon = L.divIcon({ className:'', iconSize:[18,18], iconAnchor:[9,9],
+  html:'<div style="width:18px;height:18px;background:#6366f1;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>' });
+userMarker = L.marker([userLat,userLng],{icon:userIcon}).addTo(map).bindPopup('📍 คุณอยู่ที่นี่');
+
+navigator.geolocation?.getCurrentPosition(p=>{
+  userLat=p.coords.latitude; userLng=p.coords.longitude;
+  userMarker.setLatLng([userLat,userLng]);
+  map.setView([userLat,userLng],14);
+});
+
+// ── Pharmacy marker icon ─────────────────────────────────────────────────────
+function phIcon(name, hasStock=true) {
+  const bg = hasStock ? '#10b981' : '#9ca3af';
+  const initial = name.slice(0,2).toUpperCase();
+  return L.divIcon({ className:'', iconAnchor:[20,36],
+    html:`<div style="position:relative;text-align:center">
+      <div style="background:${bg};color:#fff;border-radius:10px 10px 10px 2px;padding:4px 8px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25);min-width:36px">💊 ${initial}</div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid ${bg};margin:0 auto;"></div>
+    </div>` });
+}
+
+function clearMarkers() { markers.forEach(m=>map.removeLayer(m)); markers=[]; }
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-med').classList.toggle('active', tab==='med');
+  document.getElementById('tab-ph').classList.toggle('active', tab==='ph');
+  if (tab === 'ph') showAllPharmacies();
+  else {
+    document.getElementById('results').innerHTML = `
+      <div class="ai-hint">💡 ไม่แน่ใจชื่อยา? <a href="/ai-doctor">ปรึกษา AI Doctor</a></div>
+      <div class="no-results">พิมพ์ชื่อยาเพื่อค้นหา</div>`;
+  }
+}
+
+// ── Load all pharmacies ───────────────────────────────────────────────────────
+async function showAllPharmacies() {
+  if (currentTab !== 'ph') { switchTab('ph'); return; }
+  const panel = document.getElementById('results');
+  panel.innerHTML = '<div class="loading">⏳ กำลังโหลด...</div>';
+  clearMarkers();
+
+  const r = await fetch(`/api/medicine-finder/search?q=&lat=${userLat}&lng=${userLng}&km=50`);
+  const data = await r.json();
+
+  // Collect unique pharmacies
+  const phMap = {};
+  data.forEach(med => {
+    med.nearby_pharmacies.forEach(ph => {
+      if (!phMap[ph.pharmacy_id]) phMap[ph.pharmacy_id] = { ...ph, med_count: 0, meds: [] };
+      phMap[ph.pharmacy_id].med_count++;
+      phMap[ph.pharmacy_id].meds.push(med.name);
+    });
+  });
+
+  allPharmacies = Object.values(phMap).sort((a,b)=>a.distance_km-b.distance_km);
+
+  if (!allPharmacies.length) {
+    panel.innerHTML = '<div class="no-results">ไม่พบร้านยาในรัศมี 50 กม.</div>';
+    return;
+  }
+
+  let html = '';
+  allPharmacies.forEach(ph => {
+    const tags = ph.delivery_options.map(o =>
+      `<span class="tag-pill tag-${o}">${o==='pickup'?'🏪 หน้าร้าน':o==='express'?'⚡ ส่งด่วน':'🚚 จัดส่ง'}</span>`).join('');
+    html += `<div class="phar-card" onclick="openPharmacyDetail(${ph.pharmacy_id})">
+      <div class="phar-name">${ph.pharmacy_name}</div>
+      <div class="phar-addr">📍 ${ph.address} · ${ph.distance_km} กม.</div>
+      <div><span class="star">★</span> ${ph.rating} ${tags}</div>
+      <div class="med-count">มียา ${ph.med_count} ชนิด ในสต็อก</div>
+    </div>`;
+
+    const m = L.marker([ph.latitude, ph.longitude], { icon: phIcon(ph.pharmacy_name) })
+      .addTo(map)
+      .bindPopup(`<strong>${ph.pharmacy_name}</strong><br>${ph.address}<br>★ ${ph.rating} · ${ph.med_count} ชนิด`)
+      .on('click', () => openPharmacyDetail(ph.pharmacy_id));
+    markers.push(m);
+  });
+
+  panel.innerHTML = html;
+  fitMarkers();
+}
+
+// ── Search medicines ──────────────────────────────────────────────────────────
+async function search() {
+  if (currentTab !== 'med') switchTab('med');
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  const panel = document.getElementById('results');
+  panel.innerHTML = '<div class="loading">⏳ กำลังค้นหา...</div>';
+  clearMarkers(); closeDetail();
+
+  const r = await fetch(`/api/medicine-finder/search?q=${encodeURIComponent(q)}&lat=${userLat}&lng=${userLng}&km=30`);
+  const data = await r.json();
+
+  if (!data.length) { panel.innerHTML = '<div class="no-results">ไม่พบยาที่ค้นหา</div>'; return; }
+
+  let html = '';
+  data.forEach((med, mi) => {
+    html += `<div class="med-card" id="mc${mi}" onclick="toggleMed(${mi})">
+      <div class="med-name">${med.name}</div>
+      <div class="med-meta">${med.generic||''} ${med.dosage?'· '+med.dosage:''}</div>
+      ${med.purpose?`<div style="font-size:.75rem;color:#6b7280;margin-bottom:.35rem;">${med.purpose}</div>`:''}`;
+
+    if (med.nearby_pharmacies.length) {
+      html += `<div style="font-size:.73rem;font-weight:600;color:#374151;margin-bottom:.2rem;">พบ ${med.nearby_pharmacies.length} ร้านใกล้คุณ</div>`;
+      med.nearby_pharmacies.forEach(ph => {
+        html += `<div class="ph-row" onclick="event.stopPropagation();openPharmacyDetail(${ph.pharmacy_id})">
+          <span>🏪</span>
+          <span class="ph-row-name">${ph.pharmacy_name}</span>
+          <span class="ph-dist">${ph.distance_km}km</span>
+          <span class="ph-qty">${ph.quantity}เม็ด</span>
+          <span class="ph-price">฿${ph.price}</span>
+        </div>`;
+
+        const marker = L.marker([ph.latitude,ph.longitude],{icon:phIcon(ph.pharmacy_name,ph.quantity>0)})
+          .addTo(map)
+          .bindPopup(`<strong>${ph.pharmacy_name}</strong><br>${med.name} — ${ph.quantity} เม็ด · ฿${ph.price}`)
+          .on('click',()=>openPharmacyDetail(ph.pharmacy_id));
+        markers.push(marker);
+      });
+    } else {
+      html += '<div style="font-size:.75rem;color:#ef4444;">ไม่พบร้านยาในรัศมี 30 กม. ที่มียานี้</div>';
+    }
+    html += '</div>';
+  });
+
+  panel.innerHTML = html;
+  fitMarkers();
+}
+
+function toggleMed(mi) {
+  document.querySelectorAll('.med-card').forEach((c,i)=>c.classList.toggle('sel',i===mi));
+}
+
+function fitMarkers() {
+  if (!markers.length) return;
+  const grp = L.featureGroup([userMarker,...markers]);
+  map.fitBounds(grp.getBounds().pad(.12));
+}
+
+// ── Pharmacy detail panel ─────────────────────────────────────────────────────
+async function openPharmacyDetail(phId) {
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('dp-body').innerHTML = '<div class="loading">⏳ กำลังโหลดข้อมูลร้าน...</div>';
+  document.getElementById('dp-name').textContent = '...';
+  document.getElementById('dp-sub').textContent = '';
+  document.getElementById('dp-chips').innerHTML = '';
+
+  const r = await fetch(`/api/pharmacy/${phId}/stock`);
+  const ph = await r.json();
+
+  document.getElementById('dp-name').textContent = ph.name;
+  document.getElementById('dp-sub').textContent = `📍 ${ph.address}  ☎ ${ph.phone||'—'}  ★ ${ph.rating}`;
+
+  // Delivery chips
+  const chipLabels = { pickup:'🏪 รับที่ร้าน', express:'⚡ ส่งด่วน', standard:'🚚 จัดส่ง' };
+  let chipsHtml = '';
+  ph.delivery_options.forEach((opt,i) => {
+    chipsHtml += `<div class="d-chip ${opt}${i===0?' active':''}" onclick="selectDelivery(this,'${opt}')">${chipLabels[opt]||opt}</div>`;
+  });
+  document.getElementById('dp-chips').innerHTML = chipsHtml;
+  if (ph.delivery_options.length) selectedDelivery = ph.delivery_options[0];
+
+  // Highlight marker on map
+  markers.forEach(m => {
+    const ll = m.getLatLng();
+    if (Math.abs(ll.lat - ph.latitude)<.0005 && Math.abs(ll.lng - ph.longitude)<.0005) {
+      map.setView([ph.latitude, ph.longitude], 15);
+      m.openPopup();
+    }
+  });
+
+  // Stock list
+  if (!ph.medicines.length) {
+    document.getElementById('dp-body').innerHTML = '<div class="no-results">ไม่มียาในสต็อก</div>';
+    return;
+  }
+
+  let html = `<div style="font-size:.78rem;color:#6b7280;margin-bottom:.6rem;">มียา <strong style="color:#111">${ph.medicines.length} ชนิด</strong> ในสต็อก</div>`;
+  ph.medicines.forEach(med => {
+    html += `<div class="stock-item">
+      <div class="stock-name">${med.name} <span style="font-size:.72rem;font-weight:400;color:#6b7280;">${med.dosage && !med.name.includes(med.dosage) ? med.dosage : ''}</span></div>
+      <div class="stock-purpose">${med.purpose||''}</div>
+      ${med.instruction?`<div style="font-size:.72rem;color:#374151;margin-bottom:.4rem;background:#f8fafc;padding:.3rem .5rem;border-radius:5px;">📋 ${med.instruction}</div>`:''}
+      <div class="stock-footer">
+        <span class="stock-qty">✅ ${med.quantity} เม็ด</span>
+        <span class="stock-price">฿${med.price}</span>
+        ${med.is_otc
+          ? `<button class="add-btn" onclick="addToCart(this, ${med.medicine_id}, ${phId})">+ ตะกร้า</button>`
+          : '<button class="add-btn" disabled title="ยานี้ต้องมีใบสั่งแพทย์">ต้องมีใบสั่งแพทย์</button>'}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('dp-body').innerHTML = html;
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+
+function selectDelivery(el, opt) {
+  document.querySelectorAll('#dp-chips .d-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  selectedDelivery = opt;
+}
+
+// ── Cart ─────────────────────────────────────────────────────────────────────
+async function addToCart(btn, medicineId, pharmacyId) {
+  {% if user %}
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch('/api/medicine-cart/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ medicine_id: medicineId, pharmacy_id: pharmacyId,
+                             quantity: 1 })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      btn.textContent = '✅ เพิ่มแล้ว';
+      setTimeout(()=>{ window.location.href = d.cart_url || '/cart'; }, 500);
+    } else {
+      alert(d.message || 'เกิดข้อผิดพลาด');
+      btn.disabled=false; btn.textContent='+ ตะกร้า';
+    }
+  } catch {
+    alert('ไม่สามารถเชื่อมต่อตะกร้าได้ กรุณาลองใหม่');
+    btn.disabled=false; btn.textContent='+ ตะกร้า';
+  }
+  {% else %}
+  if (confirm('กรุณาเข้าสู่ระบบก่อนสั่งซื้อ ไปหน้า login?')) window.location.href='/login';
+  {% endif %}
+}
+
+function locateMe() {
+  if (!navigator.geolocation) return alert('เบราว์เซอร์ไม่รองรับ GPS');
+  navigator.geolocation.getCurrentPosition(p=>{
+    userLat=p.coords.latitude; userLng=p.coords.longitude;
+    userMarker.setLatLng([userLat,userLng]);
+    map.setView([userLat,userLng],15);
+  },()=>alert('ไม่สามารถเข้าถึง GPS ได้'));
+}
+
+// Auto-load pharmacies on page open
+window.addEventListener('DOMContentLoaded', () => showAllPharmacies());
+</script>
+{% endblock dashboard_content %}

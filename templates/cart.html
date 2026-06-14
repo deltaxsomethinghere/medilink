@@ -1,0 +1,291 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "cart" %}
+{% block title %}ตะกร้าสินค้า | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<section class="dashboard-heading">
+  <div><span class="clinical-kicker">Shopping cart</span><h1>ตะกร้าสินค้า</h1><p>เลือกร้านใกล้คุณและวิธีรับสินค้า</p></div>
+</section>
+
+{% if items or medicine_items %}
+<div class="commerce-checkout-grid">
+  <section class="clinical-card" style="padding:1.25rem;">
+    {% if items %}
+    <span class="card-eyebrow">Cart items</span>
+    <h2 style="margin:.25rem 0 1rem;">ผลิตภัณฑ์สุขภาพ</h2>
+    {% for item in items %}
+    <div style="display:grid;grid-template-columns:1fr 90px 50px;gap:1rem;align-items:center;padding:1rem 0;border-bottom:1px solid var(--border);">
+      <div><strong>{{ item.product.name }}</strong><small style="display:block;color:var(--muted);">{{ item.product.category }} · ราคาแตกต่างตามสาขา</small></div>
+      <input type="number" min="1" max="{{ item.product.stock }}" value="{{ item.quantity }}"
+             onchange="updateQty({{ item.product.id }},this.value)"
+             style="padding:.5rem;border:1px solid var(--border);border-radius:8px;">
+      <button onclick="updateQty({{ item.product.id }},0)" style="border:0;background:none;color:#dc2626;cursor:pointer;">ลบ</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if medicine_items %}
+    <span class="card-eyebrow" style="display:block;margin-top:{{ '1.5rem' if items else '0' }};">Medicine cart</span>
+    <h2 style="margin:.25rem 0 1rem;">รายการยา OTC</h2>
+    {% for item in medicine_items %}
+    <div style="display:grid;grid-template-columns:1fr 90px 50px;gap:1rem;align-items:center;padding:1rem 0;border-bottom:1px solid var(--border);">
+      <div>
+        <strong>{{ item.medicine.name }}</strong>
+        <small style="display:block;color:var(--muted);">
+          {{ item.pharmacy.name }} · ฿{{ '%.0f'|format(item.unit_price) }}
+        </small>
+      </div>
+      <input type="number" min="1" max="{{ item.stock_quantity }}" value="{{ item.quantity }}"
+             onchange="updateMedicineQty({{ item.medicine.id }},{{ item.pharmacy.id }},this.value)"
+             style="padding:.5rem;border:1px solid var(--border);border-radius:8px;">
+      <button onclick="updateMedicineQty({{ item.medicine.id }},{{ item.pharmacy.id }},0)"
+              style="border:0;background:none;color:#dc2626;cursor:pointer;">ลบ</button>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </section>
+
+  <section class="clinical-card" style="padding:1.25rem;position:sticky;top:1rem;">
+    {% if items %}
+    <span class="card-eyebrow">Nearby stores</span>
+    <h2 style="margin:.25rem 0;">เลือกร้านที่มีสินค้าครบ</h2>
+    <p style="color:var(--muted);font-size:.78rem;margin-bottom:1rem;">เรียงจากร้านที่อยู่ใกล้คุณที่สุด และตรวจสต็อกตามจำนวนในตะกร้าแล้ว</p>
+    <div id="shop-pharmacy-list"><p style="color:var(--muted);">กำลังค้นหาร้านใกล้คุณ...</p></div>
+
+    <div id="shop-delivery-wrap" style="display:none;margin-top:1rem;">
+      <strong style="font-size:.85rem;">วิธีรับสินค้า</strong>
+      <div id="shop-delivery-options" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;"></div>
+    </div>
+
+    <label id="address-wrap" style="display:none;margin:1rem 0;">ที่อยู่จัดส่ง
+      <textarea id="address" rows="3" style="width:100%;margin-top:.3rem;padding:.65rem;border:1px solid var(--border);border-radius:8px;">{{ profile.address if profile else '' }}</textarea>
+    </label>
+
+    <div style="display:flex;justify-content:space-between;font-size:1.15rem;margin-top:1.2rem;">
+      <strong>ยอดรวม</strong><strong id="shop-total" style="color:var(--primary);">—</strong>
+    </div>
+    <button id="checkout-btn" class="primary-button" style="width:100%;margin-top:1rem;" onclick="checkout()" disabled>เลือกร้านเพื่อดำเนินการต่อ</button>
+    {% endif %}
+
+    {% if medicine_items and items %}
+    <hr style="border:0;border-top:1px solid var(--border);margin:1.5rem 0;">
+    {% endif %}
+
+    {% if medicine_items %}
+    <div id="medicine-checkout-panel">
+      <span class="card-eyebrow">Medicine checkout</span>
+      <h2 style="margin:.25rem 0;">สั่งซื้อยาจาก {{ medicine_pharmacy.name }}</h2>
+      <p style="color:var(--muted);font-size:.78rem;margin-bottom:1rem;">
+        ตะกร้ายาหนึ่งรายการชำระจากร้านเดียว เพื่อให้ตรวจสต็อกและราคาได้ถูกต้อง
+      </p>
+      <div id="medicine-delivery-options" style="display:flex;gap:.5rem;flex-wrap:wrap;"></div>
+      <label id="medicine-address-wrap" style="display:none;margin:1rem 0;">ที่อยู่จัดส่ง
+        <textarea id="medicine-address" rows="3" style="width:100%;margin-top:.3rem;padding:.65rem;border:1px solid var(--border);border-radius:8px;">{{ profile.address if profile else '' }}</textarea>
+      </label>
+      <div style="display:flex;justify-content:space-between;font-size:1.15rem;margin-top:1.2rem;">
+        <strong>ยอดรวมยา</strong><strong style="color:var(--primary);">฿{{ '%.0f'|format(medicine_total) }}</strong>
+      </div>
+      <button id="medicine-checkout-btn" class="primary-button" style="width:100%;margin-top:1rem;"
+              onclick="checkoutMedicines()" disabled>เลือกวิธีรับยา</button>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% else %}
+<section class="clinical-card" style="padding:3rem;text-align:center;">
+  <h2>ตะกร้ายังว่าง</h2>
+  <a class="primary-button" href="{{ url_for('medicine_finder') }}">ค้นหายาใกล้ฉัน</a>
+  <a class="secondary-button" href="{{ url_for('shop_page') }}">เลือกซื้อสินค้า</a>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script>
+let selectedShopPharmacy = null;
+let selectedShopDelivery = null;
+let selectedMedicineDelivery = null;
+const SHOP_PATIENT_LAT = {{ profile.latitude if profile else 13.7563 }};
+const SHOP_PATIENT_LNG = {{ profile.longitude if profile else 100.5018 }};
+const MEDICINE_DELIVERY_OPTIONS = {{ (medicine_pharmacy.delivery_options if medicine_pharmacy else [])|tojson }};
+
+async function updateQty(id, quantity) {
+  await fetch('/api/cart/update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({product_id:id, quantity:Number(quantity)})
+  });
+  location.reload();
+}
+
+async function updateMedicineQty(medicineId, pharmacyId, quantity) {
+  const res = await fetch('/api/medicine-cart/update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      medicine_id:medicineId,
+      pharmacy_id:pharmacyId,
+      quantity:Number(quantity)
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    showToast(data.message || 'ไม่สามารถอัปเดตตะกร้ายาได้');
+    return;
+  }
+  location.reload();
+}
+
+async function loadNearbyShopPharmacies() {
+  const container = document.getElementById('shop-pharmacy-list');
+  if (!container) return;
+  try {
+    const res = await fetch(`/api/shop/pharmacies/nearby?lat=${SHOP_PATIENT_LAT}&lng=${SHOP_PATIENT_LNG}`);
+    const pharmacies = await res.json();
+    if (!pharmacies.length) {
+      container.innerHTML = '<div style="padding:1rem;border:1px solid #fecaca;border-radius:9px;color:#dc2626;background:#fef2f2;">ไม่พบร้านที่มีสินค้าครบตามจำนวนในตะกร้า กรุณาลดจำนวนหรือเลือกสินค้าใหม่</div>';
+      return;
+    }
+    container.innerHTML = '';
+    pharmacies.forEach((pharmacy, index) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'shop-pharmacy-card';
+      card.style.cssText = 'width:100%;text-align:left;border:2px solid var(--border);border-radius:10px;padding:.8rem;margin-bottom:.55rem;background:white;cursor:pointer;';
+      const stockLines = pharmacy.items.map(item =>
+        `${item.name}: เหลือ ${item.stock} ชิ้น`).join(' · ');
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:.75rem;">
+          <span><strong>${index === 0 ? 'ใกล้สุด · ' : ''}${pharmacy.name}</strong><br>
+          <small style="color:var(--muted);">${pharmacy.distance} กม. · ★ ${pharmacy.rating}</small></span>
+          <strong style="color:#4f46e5;">฿${pharmacy.total.toFixed(0)}</strong>
+        </div>
+        <small style="display:block;color:#059669;margin-top:.4rem;line-height:1.45;">${stockLines}</small>`;
+      card.addEventListener('click', () => selectShopPharmacy(pharmacy, card));
+      container.appendChild(card);
+      if (index === 0) selectShopPharmacy(pharmacy, card);
+    });
+  } catch (error) {
+    container.innerHTML = '<p style="color:#dc2626;">ไม่สามารถตรวจสอบร้านและสต็อกได้</p>';
+  }
+}
+
+function selectShopPharmacy(pharmacy, card) {
+  selectedShopPharmacy = pharmacy;
+  document.querySelectorAll('.shop-pharmacy-card').forEach(item => {
+    item.style.borderColor = 'var(--border)';
+    item.style.background = 'white';
+  });
+  card.style.borderColor = '#4f46e5';
+  card.style.background = '#eef2ff';
+  document.getElementById('shop-total').textContent = `฿${pharmacy.total.toFixed(0)}`;
+  renderShopDeliveryOptions(pharmacy.delivery_options);
+}
+
+function renderShopDeliveryOptions(options) {
+  const wrap = document.getElementById('shop-delivery-wrap');
+  const container = document.getElementById('shop-delivery-options');
+  const labels = {pickup:'รับหน้าร้าน', express:'ส่งด่วน (ภายใน 1 ชม.)', standard:'ส่งมาตรฐาน'};
+  wrap.style.display = 'block';
+  container.innerHTML = '';
+  options.forEach((option, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = labels[option] || option;
+    button.style.cssText = 'padding:.45rem .8rem;border:2px solid var(--border);border-radius:999px;background:white;cursor:pointer;font-size:.78rem;';
+    button.addEventListener('click', () => {
+      selectedShopDelivery = option;
+      container.querySelectorAll('button').forEach(item => {
+        item.style.background = 'white'; item.style.color = '#374151'; item.style.borderColor = 'var(--border)';
+      });
+      button.style.background = '#4f46e5'; button.style.color = 'white'; button.style.borderColor = '#4f46e5';
+      document.getElementById('address-wrap').style.display = option === 'pickup' ? 'none' : 'block';
+      const checkoutButton = document.getElementById('checkout-btn');
+      checkoutButton.disabled = false;
+      checkoutButton.textContent = option === 'pickup' ? 'ชำระเงินและรับหน้าร้าน' : 'ชำระเงินและสั่งจัดส่ง';
+    });
+    container.appendChild(button);
+    if (index === 0) button.click();
+  });
+}
+
+async function checkout() {
+  if (!selectedShopPharmacy || !selectedShopDelivery) {
+    showToast('กรุณาเลือกร้านและวิธีรับสินค้า'); return;
+  }
+  const button = document.getElementById('checkout-btn');
+  button.disabled = true; button.textContent = 'กำลังสร้างคำสั่งซื้อ...';
+  const res = await fetch('/api/shop/checkout', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      pharmacy_id:selectedShopPharmacy.id,
+      delivery_type:selectedShopDelivery,
+      address:document.getElementById('address').value
+    })
+  });
+  const data = await res.json();
+  showToast(data.message);
+  if (res.ok) setTimeout(() => location.href='/orders', 900);
+  else { button.disabled = false; button.textContent = 'ลองอีกครั้ง'; }
+}
+
+function renderMedicineDeliveryOptions() {
+  const container = document.getElementById('medicine-delivery-options');
+  if (!container) return;
+  const labels = {
+    pickup:'รับหน้าร้าน',
+    express:'ส่งด่วน (ภายใน 1 ชม.)',
+    standard:'ส่งมาตรฐาน'
+  };
+  MEDICINE_DELIVERY_OPTIONS.forEach((option, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = labels[option] || option;
+    button.style.cssText = 'padding:.45rem .8rem;border:2px solid var(--border);border-radius:999px;background:white;cursor:pointer;font-size:.78rem;';
+    button.addEventListener('click', () => {
+      selectedMedicineDelivery = option;
+      container.querySelectorAll('button').forEach(item => {
+        item.style.background = 'white';
+        item.style.color = '#374151';
+        item.style.borderColor = 'var(--border)';
+      });
+      button.style.background = '#4f46e5';
+      button.style.color = 'white';
+      button.style.borderColor = '#4f46e5';
+      document.getElementById('medicine-address-wrap').style.display =
+        option === 'pickup' ? 'none' : 'block';
+      const checkoutButton = document.getElementById('medicine-checkout-btn');
+      checkoutButton.disabled = false;
+      checkoutButton.textContent =
+        option === 'pickup' ? 'ยืนยันคำสั่งซื้อและรับหน้าร้าน' : 'ยืนยันคำสั่งซื้อและจัดส่ง';
+    });
+    container.appendChild(button);
+    if (index === 0) button.click();
+  });
+}
+
+async function checkoutMedicines() {
+  if (!selectedMedicineDelivery) {
+    showToast('กรุณาเลือกวิธีรับยา');
+    return;
+  }
+  const button = document.getElementById('medicine-checkout-btn');
+  button.disabled = true;
+  button.textContent = 'กำลังสร้างคำสั่งซื้อ...';
+  const res = await fetch('/api/medicine-cart/checkout', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      delivery_type:selectedMedicineDelivery,
+      address:document.getElementById('medicine-address').value
+    })
+  });
+  const data = await res.json();
+  showToast(data.message);
+  if (res.ok) setTimeout(() => location.href='/orders', 700);
+  else {
+    button.disabled = false;
+    button.textContent = 'ลองอีกครั้ง';
+  }
+}
+
+loadNearbyShopPharmacies();
+renderMedicineDeliveryOptions();
+</script>
+{% endblock %}

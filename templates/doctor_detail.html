@@ -1,0 +1,72 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "doctors" %}
+{% block title %}{{ doctor.name }} | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<a href="{{ url_for('doctors_page') }}" style="color:var(--primary);font-size:.82rem;">← กลับไปหน้าค้นหาแพทย์</a>
+<section class="clinical-card" style="margin-top:1rem;padding:1.25rem;">
+  <div style="display:flex;gap:1.2rem;align-items:center;">
+    <div class="product-visual" style="min-height:110px;width:110px;border-radius:18px;flex:none;">DR</div>
+    <div><span class="card-eyebrow">{{ doctor.specialty }}</span><h1 style="font-size:1.6rem;margin:.25rem 0;">{{ doctor.name }}</h1><p>{{ doctor.hospital }}</p><strong style="color:#d97706;">★ {{ average or 'ใหม่' }} จาก {{ count }} รีวิว</strong></div>
+  </div>
+</section>
+<style>.dd-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:1.25rem;margin-top:1.25rem}@media(max-width:768px){.dd-grid{grid-template-columns:1fr}}</style>
+<div class="dd-grid">
+  <div>
+    <section class="clinical-card" style="padding:1.25rem;margin-bottom:1.25rem;">
+      <span class="card-eyebrow">Gemini review summary</span><h2 style="margin:.3rem 0 1rem;">สรุปความคิดเห็นจากผู้ป่วย</h2>
+      <div class="ai-summary-card"><strong>Gemini AI</strong><br>{{ review_summary }}</div>
+      <div style="margin-top:1rem;">{% for review in reviews %}<div style="padding:.8rem 0;border-bottom:1px solid var(--border);"><strong>★ {{ review.rating }} · {{ review.author.name }}</strong><p style="margin:.25rem 0;font-size:.85rem;">{{ review.comment }}</p></div>{% endfor %}</div>
+    </section>
+    <section class="clinical-card" style="padding:1.25rem;">
+      <h2>Recommended health products</h2>
+      <p style="font-size:.78rem;color:var(--muted);">คำแนะนำสินค้าอ้างอิงจากความเชี่ยวชาญของแพทย์ ไม่ใช่การสั่งยา</p>
+      <div class="market-grid" style="grid-template-columns:repeat(3,1fr);margin-top:1rem;">{% for product in recommended_products %}<a href="{{ url_for('product_detail', product_id=product.id) }}" class="market-card" style="padding:.8rem;"><strong style="font-size:.8rem;">{{ product.name }}</strong><small style="display:block;color:var(--primary);margin-top:.3rem;">฿{{ '%.0f'|format(product.price) }}</small></a>{% endfor %}</div>
+    </section>
+  </div>
+  <section class="clinical-card" style="padding:1.25rem;align-self:start;position:sticky;top:1rem;">
+    <h2>นัดหมายแพทย์</h2>
+    <label style="display:block;margin:.8rem 0;">ช่วงเวลาที่ว่าง<select id="slot" style="width:100%;margin-top:.35rem;padding:.65rem;border:1px solid var(--border);border-radius:8px;">{% for slot in slots %}<option value="{{ slot.date }}|{{ slot.time }}">{{ slot.date }} เวลา {{ slot.time }}</option>{% endfor %}</select></label>
+    <label style="display:block;margin-bottom:1rem;">เหตุผลที่ต้องการพบแพทย์<textarea id="reason" rows="3" style="width:100%;margin-top:.35rem;padding:.65rem;border:1px solid var(--border);border-radius:8px;"></textarea></label>
+    <button class="primary-button" id="book-appointment-btn" style="width:100%;" onclick="bookAppointment()">ยืนยันนัดหมาย</button>
+    <p id="appointment-status" role="status" aria-live="polite" style="display:none;font-size:.76rem;margin:.75rem 0 0;"></p>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:.8rem;">Gemini AI is used as a medical assistant to summarize symptoms and support doctors, but it never makes the final diagnosis.</p>
+  </section>
+</div>
+{% endblock %}
+{% block dashboard_scripts %}
+<script>
+async function bookAppointment(){
+  const button = document.getElementById('book-appointment-btn');
+  const status = document.getElementById('appointment-status');
+  const slot = document.getElementById('slot');
+  const reason = document.getElementById('reason');
+  const [date,time] = (slot.value || '').split('|');
+
+  status.style.display = 'block';
+  status.style.color = 'var(--muted)';
+  status.textContent = 'กำลังจองนัดหมาย...';
+  button.disabled = true;
+  button.style.opacity = '.7';
+
+  try {
+    const res = await fetch('/api/appointments', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({doctor_id: {{ doctor.id }}, date, time, reason: reason.value})
+    });
+    const data = await res.json().catch(() => ({message: 'ไม่สามารถอ่านคำตอบจากเซิร์ฟเวอร์ได้'}));
+    if (!res.ok) throw new Error(data.message || 'ไม่สามารถจองนัดหมายได้');
+    status.style.color = '#047857';
+    status.textContent = data.message || 'นัดหมายสำเร็จ';
+    showToast(status.textContent);
+    setTimeout(() => location.href = '/dashboard', 900);
+  } catch (error) {
+    status.style.color = '#dc2626';
+    status.textContent = error.message || 'ไม่สามารถจองนัดหมายได้ กรุณาลองใหม่';
+    showToast(status.textContent);
+    button.disabled = false;
+    button.style.opacity = '1';
+  }
+}
+</script>
+{% endblock %}

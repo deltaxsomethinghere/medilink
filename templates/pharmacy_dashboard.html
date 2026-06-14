@@ -1,0 +1,355 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "pharmacy" %}
+{% block title %}แดชบอร์ดร้านขายยา | MediLink AI{% endblock %}
+
+{% block dashboard_content %}
+<section class="dashboard-heading">
+  <div>
+    <span class="clinical-kicker">Pharmacy operations</span>
+    <h1>{{ pharmacy.name if pharmacy else 'ศูนย์จัดการร้านขายยา' }}</h1>
+    <p>{{ pharmacy.address if pharmacy else 'ติดตามคำสั่งซื้อ จัดการสต็อก และประสานงานกับทีมรักษา' }}</p>
+  </div>
+  <div class="heading-actions">
+    <button class="secondary-button" type="button" onclick="showToast('ดาวน์โหลดรายงานสต็อกแล้ว')">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+      ส่งออกรายงาน
+    </button>
+  </div>
+</section>
+
+<section class="metric-grid">
+  <article class="metric-card">
+    <span class="metric-icon indigo">
+      <svg viewBox="0 0 24 24"><path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+    </span>
+    <div>
+      <span>คำสั่งซื้อทั้งหมด</span>
+      <strong>{{ orders|length + shop_orders|length }}</strong>
+      <small>รายการ</small>
+    </div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon emerald">
+      <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+    </span>
+    <div>
+      <span>รอดำเนินการ</span>
+      <strong>{{ orders|selectattr('status', 'equalto', 'PENDING')|list|length + shop_orders|selectattr('status', 'equalto', 'PENDING')|list|length }}</strong>
+      <small>ออเดอร์ใหม่</small>
+    </div>
+  </article>
+  <article class="metric-card alert-card">
+    <span class="metric-icon amber">
+      <svg viewBox="0 0 24 24"><path d="M10.3 3.4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+    </span>
+    <div>
+      <span>สต็อกใกล้หมด</span>
+      <strong>{{ stock_items|selectattr('qty', 'le', 5)|list|length }}</strong>
+      <small>ควรเติมด่วน</small>
+    </div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon violet">
+      <svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+    </span>
+    <div>
+      <span>เสร็จสิ้นวันนี้</span>
+      <strong>{{ orders|selectattr('status', 'equalto', 'COMPLETED')|list|length }}</strong>
+      <small>ออเดอร์</small>
+    </div>
+  </article>
+</section>
+
+{% if shop_orders %}
+<section class="clinical-card" style="margin-bottom:1.25rem;">
+  <div class="card-heading">
+    <div><span class="card-eyebrow">Health product orders</span><h2>ออเดอร์ผลิตภัณฑ์สุขภาพ</h2></div>
+  </div>
+  <div class="clinical-table-wrap">
+    <table class="clinical-table">
+      <thead><tr><th>ออเดอร์</th><th>ลูกค้า</th><th>สินค้า</th><th>วิธีรับ</th><th>ยอดรวม</th><th>สถานะ</th><th></th></tr></thead>
+      <tbody>
+      {% for order in shop_orders %}
+        <tr>
+          <td><strong>{{ order.id }}</strong><small>{{ order.created_at.strftime('%d/%m %H:%M') }}</small></td>
+          <td>{{ order.patient.name }}</td>
+          <td>{% for item in order.items %}{{ item.product.name }} × {{ item.quantity }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+          <td>{% if order.delivery_type == 'pickup' %}รับหน้าร้าน{% elif order.delivery_type == 'express' %}ส่งด่วน{% else %}ส่งมาตรฐาน{% endif %}</td>
+          <td>฿{{ '%.0f'|format(order.total) }}</td>
+          <td><span class="status-badge {{ order.status|lower }}" id="shop-status-{{ order.id }}">{{ order.status }}</span></td>
+          <td id="shop-actions-{{ order.id }}">
+            {% if order.status == 'PENDING' %}<button class="primary-button compact-button" onclick="updateShopStatus('{{ order.id }}','ACCEPTED')">รับออเดอร์</button>
+            {% elif order.status == 'ACCEPTED' %}<button class="primary-button compact-button" onclick="updateShopStatus('{{ order.id }}','PREPARING')">เตรียมสินค้า</button>
+            {% elif order.status == 'PREPARING' %}<button class="primary-button compact-button" onclick="updateShopStatus('{{ order.id }}','COMPLETED')">เสร็จสิ้น</button>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="pharmacy-layout">
+  <!-- Orders -->
+  <article class="clinical-card order-card">
+    <div class="card-heading">
+      <div><span class="card-eyebrow">Order management</span><h2>คำสั่งซื้อทั้งหมด</h2></div>
+    </div>
+
+    <div class="order-list" id="order-list">
+      {% if not orders %}
+        <div style="padding:2.5rem; text-align:center; color:var(--muted);">
+          <div style="font-size:2.5rem; margin-bottom:.5rem;">📭</div>
+          <p>ยังไม่มีคำสั่งซื้อ</p>
+        </div>
+      {% endif %}
+
+      {% for order in orders %}
+      <div class="order-row" data-order-id="{{ order.id }}" id="order-row-{{ order.id }}">
+        <div class="order-id">
+          <strong>{{ order.id }}</strong>
+          <span>{{ order.created_at.strftime('%H:%M') }} น.</span>
+        </div>
+        <div class="order-patient">
+          <span>{{ order.patient.name[:2] if order.patient else '??' }}</span>
+          <p>
+            <strong>{{ order.patient.name if order.patient else '—' }}</strong>
+            <small>
+              {% if order.medicine %}{{ order.medicine.name }} × {{ order.quantity or 1 }}
+              {% elif order.consultation and order.consultation.medicine %}{{ order.consultation.medicine.name }}
+              {% else %}ไม่พบรายละเอียดรายการยา{% endif %}
+            </small>
+          </p>
+        </div>
+        <div class="order-delivery">
+          <span>{{ order.delivery_type }}</span>
+          <small>
+            {% if order.consultation and order.consultation.doctor %}
+              จ่ายโดย: {{ order.consultation.doctor.name }}
+            {% endif %}
+          </small>
+        </div>
+        <div class="order-status">
+          <span class="status-badge {{ order.status|lower }}" id="status-{{ order.id }}">
+            {% if order.status == 'PENDING' %}รอดำเนินการ
+            {% elif order.status == 'ACCEPTED' %}รับออเดอร์แล้ว
+            {% elif order.status == 'PREPARING' %}กำลังเตรียมยา
+            {% elif order.status == 'COMPLETED' %}เสร็จสิ้น
+            {% else %}{{ order.status }}{% endif %}
+          </span>
+        </div>
+        <div class="order-actions" id="actions-{{ order.id }}">
+          {% if order.status == 'PENDING' %}
+            <button class="primary-button compact-button" type="button"
+                    onclick="updateStatus('{{ order.id }}', 'ACCEPTED')">รับออเดอร์</button>
+          {% elif order.status == 'ACCEPTED' %}
+            <button class="primary-button compact-button" type="button"
+                    onclick="updateStatus('{{ order.id }}', 'PREPARING')">เริ่มเตรียมยา</button>
+          {% elif order.status == 'PREPARING' %}
+            <button class="primary-button compact-button" type="button"
+                    style="background:#10b981;"
+                    onclick="updateStatus('{{ order.id }}', 'COMPLETED')">จัดส่งแล้ว</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <!-- Stock -->
+  <article class="clinical-card stock-card">
+    <div class="card-heading">
+      <div><span class="card-eyebrow">Inventory overview</span><h2>สถานะสต็อกยา</h2></div>
+    </div>
+    <div class="clinical-table-wrap">
+      <table class="clinical-table stock-table">
+        <thead>
+          <tr><th>รายการยา</th><th>จำนวน</th><th>ราคา</th><th>สถานะ</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for item in stock_items %}
+          <tr id="stock-row-{{ item.id }}">
+            <td><strong>{{ item.name }}</strong><small>{{ item.sku }}</small></td>
+            <td>
+              <input type="number" value="{{ item.qty }}" min="0"
+                     id="qty-{{ item.id }}" aria-label="จำนวน {{ item.name }}"
+                     style="width:70px; border:1px solid var(--border); border-radius:6px; padding:.3rem .5rem; font-size:.875rem;">
+            </td>
+            <td>
+              <span class="price-input">฿
+                <input type="number" value="{{ item.price }}" min="0"
+                       id="price-{{ item.id }}" aria-label="ราคา {{ item.name }}"
+                       style="width:70px; border:1px solid var(--border); border-radius:6px; padding:.3rem .5rem; font-size:.875rem;">
+              </span>
+            </td>
+            <td>
+              {% if item.qty <= 5 %}<span class="status-badge low">ใกล้หมด</span>
+              {% elif item.qty <= 10 %}<span class="status-badge warning">ควรเติม</span>
+              {% else %}<span class="status-badge available">พร้อมขาย</span>{% endif %}
+            </td>
+            <td>
+              <button class="table-action" type="button"
+                      onclick="saveStock({{ item.id }}, this)">บันทึก</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="clinical-card" style="margin-top:1.25rem;">
+  <div class="card-heading"><div><span class="card-eyebrow">Product inventory</span><h2>สต็อกผลิตภัณฑ์สุขภาพรายสาขา</h2></div></div>
+  <div class="clinical-table-wrap">
+    <table class="clinical-table">
+      <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ราคา</th><th>สถานะ</th><th></th></tr></thead>
+      <tbody>
+      {% for item in product_stock_items %}
+        <tr>
+          <td><strong>{{ item.name }}</strong><small>{{ item.sku }}</small></td>
+          <td><input id="product-qty-{{ item.id }}" type="number" min="0" value="{{ item.qty }}" style="width:72px;padding:.35rem;border:1px solid var(--border);border-radius:6px;"></td>
+          <td>฿ <input id="product-price-{{ item.id }}" type="number" min="0" value="{{ item.price }}" style="width:82px;padding:.35rem;border:1px solid var(--border);border-radius:6px;"></td>
+          <td>{% if item.qty <= 5 %}<span class="status-badge low">ใกล้หมด</span>{% else %}<span class="status-badge available">พร้อมขาย</span>{% endif %}</td>
+          <td><button class="table-action" onclick="saveProductStock({{ item.id }},this)">บันทึก</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script>
+// ── Update order status ──────────────────────────────────────────────────
+const statusLabels = {
+  ACCEPTED:  'รับออเดอร์แล้ว',
+  PREPARING: 'กำลังเตรียมยา',
+  COMPLETED: 'เสร็จสิ้น',
+};
+const statusColors = {
+  ACCEPTED:  '#3b82f6',
+  PREPARING: '#f59e0b',
+  COMPLETED: '#10b981',
+};
+const nextBtns = {
+  ACCEPTED:  { label: 'เริ่มเตรียมยา', next: 'PREPARING' },
+  PREPARING: { label: 'จัดส่งแล้ว',    next: 'COMPLETED' },
+};
+
+async function updateStatus(orderId, status) {
+  try {
+    const res = await fetch(`/api/pharmacy/orders/${orderId}/status`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ status })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.message);
+
+    // Update badge
+    const badge = document.getElementById(`status-${orderId}`);
+    badge.textContent = statusLabels[status] || status;
+    badge.className   = `status-badge ${status.toLowerCase()}`;
+
+    // Update action button
+    const actions = document.getElementById(`actions-${orderId}`);
+    const next    = nextBtns[status];
+    if (next) {
+      actions.innerHTML = `<button class="primary-button compact-button" type="button"
+        onclick="updateStatus('${orderId}','${next.next}')">${next.label}</button>`;
+    } else {
+      actions.innerHTML = '<span style="font-size:.8rem; color:#10b981;">✅ เสร็จสิ้น</span>';
+    }
+
+    showToast(`อัปเดต ${orderId} → ${statusLabels[status]} แล้ว`);
+  } catch(err) {
+    showToast(err.message || 'ไม่สามารถอัปเดตสถานะได้');
+  }
+}
+
+async function updateShopStatus(orderId, status) {
+  try {
+    const res = await fetch(`/api/shop/orders/${orderId}/status`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+    showToast('อัปเดตสถานะออเดอร์สินค้าแล้ว');
+    setTimeout(() => location.reload(), 600);
+  } catch (error) {
+    showToast(error.message || 'ไม่สามารถอัปเดตสถานะได้');
+  }
+}
+
+// ── Save stock ────────────────────────────────────────────────────────────
+async function saveStock(stockId, btn) {
+  const qty   = document.getElementById(`qty-${stockId}`).value;
+  const price = document.getElementById(`price-${stockId}`).value;
+
+  btn.disabled    = true;
+  btn.textContent = 'บันทึก...';
+
+  try {
+    const res = await fetch('/api/stock/update', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ stock_id: stockId, quantity: qty, price: price })
+    });
+    if (!res.ok) throw new Error((await res.json()).message);
+    showToast('บันทึกสต็อกแล้ว');
+  } catch(err) {
+    showToast(err.message || 'เกิดข้อผิดพลาด');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'บันทึก';
+  }
+}
+
+async function saveProductStock(stockId, btn) {
+  btn.disabled = true;
+  const res = await fetch('/api/product-stock/update', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      stock_id:stockId,
+      quantity:document.getElementById(`product-qty-${stockId}`).value,
+      price:document.getElementById(`product-price-${stockId}`).value
+    })
+  });
+  const data = await res.json();
+  showToast(data.message);
+  btn.disabled = false;
+}
+
+// ── SocketIO: receive new order notification ──────────────────────────────
+socket.on('new_order', (order) => {
+  const list = document.getElementById('order-list');
+  const empty = list.querySelector('[style*="font-size:2.5rem"]')?.parentElement;
+  if (empty) empty.remove();
+
+  const row = document.createElement('div');
+  row.className = 'order-row';
+  row.id        = `order-row-${order.id}`;
+  row.dataset.orderId = order.id;
+  row.style.animation = 'fadeIn .4s';
+  row.innerHTML = `
+    <div class="order-id"><strong>${order.id}</strong><span>${order.created_at} น.</span></div>
+    <div class="order-patient"><span>${(order.patient_name||'??').substring(0,2)}</span>
+      <p><strong>${order.patient_name||'—'}</strong><small>${order.medicine_name||'—'}</small></p>
+    </div>
+    <div class="order-delivery"><span>${order.delivery_type||'—'}</span></div>
+    <div class="order-status"><span class="status-badge pending" id="status-${order.id}">รอดำเนินการ</span></div>
+    <div class="order-actions" id="actions-${order.id}">
+      <button class="primary-button compact-button" type="button"
+              onclick="updateStatus('${order.id}','ACCEPTED')">รับออเดอร์</button>
+    </div>`;
+  list.prepend(row);
+});
+</script>
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}

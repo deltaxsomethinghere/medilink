@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="สมัครสมาชิกผู้ป่วย medilink แบบ 3 ขั้นตอน" />
+  <title>สมัครสมาชิกผู้ป่วย | medilink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+
+<body>
+  <div class="page-shell">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('login') }}" aria-label="medilink หน้าหลัก">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M12 3v18M3 12h18" />
+          </svg>
+        </span>
+        <span>Health<span>Connect</span></span>
+      </a>
+      <p class="secure-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+        ข้อมูลของคุณได้รับการปกป้อง
+      </p>
+    </header>
+
+    <main class="registration-layout">
+      <aside class="intro-panel" aria-labelledby="intro-title">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          เริ่มต้นดูแลสุขภาพไปด้วยกัน
+        </div>
+        <h1 id="intro-title">
+          สุขภาพที่ดี<br />
+          <span>เริ่มต้นที่ข้อมูล</span><br />
+          ที่เข้าใจคุณ
+        </h1>
+        <p class="intro-copy">
+          สร้างโปรไฟล์สุขภาพของคุณ เพื่อให้แพทย์และเภสัชกรดูแลคุณได้อย่าง
+          ปลอดภัย แม่นยำ และสะดวกยิ่งขึ้น
+        </p>
+
+        <div class="trust-list">
+          <div class="trust-item">
+            <span class="trust-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </span>
+            <div>
+              <strong>ข้อมูลสุขภาพเป็นส่วนตัว</strong>
+              <span>ใช้เพื่อการดูแลรักษาเท่านั้น</span>
+            </div>
+          </div>
+          <div class="trust-item">
+            <span class="trust-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z" />
+              </svg>
+            </span>
+            <div>
+              <strong>เชื่อมต่อการดูแลครบวงจร</strong>
+              <span>แพทย์ ผู้ป่วย และร้านยาในที่เดียว</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial">
+          <div class="avatar" aria-hidden="true">นพ</div>
+          <div>
+            <div class="stars" aria-label="5 ดาว">★★★★★</div>
+            <blockquote>
+              “ข้อมูลที่ครบถ้วนช่วยให้ทีมรักษาตัดสินใจได้ปลอดภัยขึ้น”
+            </blockquote>
+            <cite>นพ. ธนา วัฒนสุข</cite>
+          </div>
+        </div>
+      </aside>
+
+      <section class="form-card" aria-labelledby="form-title">
+        <div class="form-card-head">
+          <div>
+            <p class="step-label" id="step-label">ขั้นตอนที่ 1 จาก 3</p>
+            <h2 id="form-title">สร้างบัญชีของคุณ</h2>
+            <p id="form-subtitle">ใช้เวลาเพียง 2-3 นาที</p>
+          </div>
+          <span class="time-pill">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            3 นาที
+          </span>
+        </div>
+
+        <nav class="progress-steps" aria-label="ขั้นตอนการสมัคร">
+          <button class="step active" type="button" data-step-target="1">
+            <span class="step-number">1</span>
+            <span class="step-text">
+              <strong>บัญชี</strong>
+              <small>เข้าสู่ระบบ</small>
+            </span>
+          </button>
+          <span class="step-line"></span>
+          <button class="step" type="button" data-step-target="2">
+            <span class="step-number">2</span>
+            <span class="step-text">
+              <strong>สุขภาพ</strong>
+              <small>ข้อมูลสำคัญ</small>
+            </span>
+          </button>
+          <span class="step-line"></span>
+          <button class="step" type="button" data-step-target="3">
+            <span class="step-number">3</span>
+            <span class="step-text">
+              <strong>ตำแหน่ง</strong>
+              <small>ร้านยาใกล้คุณ</small>
+            </span>
+          </button>
+        </nav>
+
+        <form id="registration-form" novalidate>
+          <div class="form-step active" data-step="1">
+            <div class="field">
+              <label for="email">อีเมล <span>*</span></label>
+              <div class="input-wrap">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <input id="email" name="email" type="email" autocomplete="email" placeholder="name@example.com"
+                  required />
+              </div>
+              <p class="field-error" id="email-error"></p>
+            </div>
+
+            <div class="field">
+              <label for="password">รหัสผ่าน <span>*</span></label>
+              <div class="input-wrap">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="10" width="16" height="11" rx="2" />
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                </svg>
+                <input id="password" name="password" type="password" autocomplete="new-password"
+                  placeholder="อย่างน้อย 8 ตัวอักษร" minlength="8" required />
+                <button class="icon-button password-toggle" type="button" aria-label="แสดงรหัสผ่าน">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+              </div>
+              <div class="password-strength" aria-live="polite">
+                <span></span><span></span><span></span><span></span>
+                <small>ความปลอดภัยของรหัสผ่าน</small>
+              </div>
+              <p class="field-error" id="password-error"></p>
+            </div>
+
+            <label class="check-row">
+              <input type="checkbox" id="consent" required />
+              <span class="custom-check">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m5 12 4 4L19 6" />
+                </svg>
+              </span>
+              <span>
+                ฉันยอมรับ <a href="#">ข้อกำหนดการใช้งาน</a> และ
+                <a href="#">นโยบายความเป็นส่วนตัว</a>
+              </span>
+            </label>
+            <p class="field-error" id="consent-error"></p>
+          </div>
+
+          <div class="form-step" data-step="2">
+            <div class="important-note">
+              <span class="note-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10.3 3.4 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.4a2 2 0 0 0-3.4 0Z" />
+                  <path d="M12 9v4M12 17h.01" />
+                </svg>
+              </span>
+              <div>
+                <strong>ประวัติแพ้ยาสำคัญมาก</strong>
+                <p>
+                  ข้อมูลนี้ช่วยให้แพทย์และเภสัชกรหลีกเลี่ยงยาที่อาจเป็นอันตรายต่อคุณ
+                </p>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label-row">
+                <label for="allergy-input">ยาหรือสารที่แพ้</label>
+                <span class="optional">ระบุได้หลายรายการ</span>
+              </div>
+              <div class="tag-entry">
+                <input id="allergy-input" type="text" placeholder="เช่น Penicillin, Aspirin" />
+                <button type="button" data-add-tag="allergies">เพิ่ม</button>
+              </div>
+              <div class="tag-list" id="allergies-list"></div>
+              <label class="check-row compact">
+                <input type="checkbox" id="no-allergies" />
+                <span class="custom-check">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m5 12 4 4L19 6" />
+                  </svg>
+                </span>
+                <span>ไม่มีประวัติแพ้ยาที่ทราบ</span>
+              </label>
+              <p class="field-error" id="allergies-error"></p>
+            </div>
+
+            <div class="field">
+              <div class="label-row">
+                <label for="condition-input">โรคประจำตัว</label>
+                <span class="optional">ไม่บังคับ</span>
+              </div>
+              <div class="tag-entry">
+                <input id="condition-input" type="text" placeholder="เช่น เบาหวาน, ความดันโลหิตสูง" />
+                <button type="button" data-add-tag="conditions">เพิ่ม</button>
+              </div>
+              <div class="tag-list" id="conditions-list"></div>
+            </div>
+
+            <div class="privacy-inline">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              ข้อมูลสุขภาพจะถูกเก็บอย่างปลอดภัยและแสดงเฉพาะบุคลากรที่ได้รับอนุญาต
+            </div>
+          </div>
+
+          <div class="form-step" data-step="3">
+            <div class="location-visual" aria-hidden="true">
+              <div class="map-grid"></div>
+              <span class="map-dot dot-one"></span>
+              <span class="map-dot dot-two"></span>
+              <span class="map-dot dot-three"></span>
+              <span class="location-pin">
+                <svg viewBox="0 0 24 24">
+                  <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+              </span>
+            </div>
+
+            <div class="location-copy">
+              <h3>ค้นหาร้านยาที่พร้อมดูแลคุณ</h3>
+              <p>
+                อนุญาตให้ใช้ตำแหน่งเพื่อค้นหาร้านยาและยาที่มีสต็อกอยู่จริงในบริเวณใกล้เคียง
+              </p>
+            </div>
+
+            <button class="location-button" type="button" id="location-button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                <circle cx="12" cy="12" r="7" />
+              </svg>
+              ใช้ตำแหน่งปัจจุบัน
+            </button>
+
+            <div class="location-status" id="location-status" aria-live="polite">
+              <span class="status-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+                  <circle cx="12" cy="10" r="2.5" />
+                </svg>
+              </span>
+              <div>
+                <strong>ยังไม่ได้ระบุตำแหน่ง</strong>
+                <span>คุณสามารถข้ามและเพิ่มภายหลังได้</span>
+              </div>
+            </div>
+
+            <label class="check-row">
+              <input type="checkbox" id="location-consent" />
+              <span class="custom-check">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m5 12 4 4L19 6" />
+                </svg>
+              </span>
+              <span>
+                ฉันอนุญาตให้ใช้ตำแหน่งเพื่อค้นหาร้านยาใกล้ฉัน
+              </span>
+            </label>
+          </div>
+
+          <div class="form-step success-step" data-step="4">
+            <span class="success-mark">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m5 12 4 4L19 6" />
+              </svg>
+            </span>
+            <p class="success-eyebrow">สมัครสมาชิกสำเร็จ</p>
+            <h2>ยินดีต้อนรับสู่ medilink</h2>
+            <p>
+              โปรไฟล์สุขภาพของคุณพร้อมแล้ว ขั้นตอนถัดไปคือยืนยันอีเมลเพื่อเริ่มใช้งาน
+            </p>
+            <div class="success-summary">
+              <div>
+                <span>บัญชีผู้ใช้</span>
+                <strong id="summary-email">-</strong>
+              </div>
+              <div>
+                <span>ข้อมูลสุขภาพ</span>
+                <strong id="summary-health">บันทึกแล้ว</strong>
+              </div>
+              <div>
+                <span>ตำแหน่ง</span>
+                <strong id="summary-location">เพิ่มภายหลัง</strong>
+              </div>
+            </div>
+            <button class="primary-button" type="button" id="finish-button">
+              ไปยังแดชบอร์ด
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="form-actions" id="form-actions">
+            <button class="back-button" type="button" id="back-button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              ย้อนกลับ
+            </button>
+            <button class="primary-button" type="button" id="next-button">
+              ดำเนินการต่อ
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        </form>
+
+        <p class="login-link">
+          มีบัญชีอยู่แล้ว? <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 medilink</span>
+      <span>แพลตฟอร์มเชื่อมต่อการดูแลสุขภาพที่คุณวางใจ</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+</body>
+
+</html>

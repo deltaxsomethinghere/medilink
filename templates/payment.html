@@ -1,0 +1,135 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "" %}
+{% block title %}ชำระเงิน | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<style>
+.pay-wrap { max-width:480px; margin:0 auto; }
+.pay-card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; margin-bottom:1rem; }
+.pay-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:1.25rem 1.5rem; color:#fff; }
+.pay-header h2 { margin:0 0 .2rem; font-size:1.1rem; font-weight:700; }
+.pay-header p { margin:0; font-size:.82rem; opacity:.85; }
+.pay-body { padding:1.25rem 1.5rem; }
+.pay-amount { text-align:center; padding:1.25rem; background:#f8fafc; border-radius:10px; margin-bottom:1.25rem; }
+.pay-amount .label { font-size:.78rem; color:#6b7280; margin-bottom:.25rem; }
+.pay-amount .amount { font-size:2.2rem; font-weight:700; color:#111; }
+.pay-amount .order-id { font-size:.72rem; color:#9ca3af; margin-top:.2rem; }
+.method-tabs { display:flex; gap:.5rem; margin-bottom:1.25rem; }
+.method-tab { flex:1; padding:.65rem; border:2px solid #e5e7eb; border-radius:10px; text-align:center; cursor:pointer; font-size:.82rem; font-weight:600; color:#374151; }
+.method-tab.active { border-color:#6366f1; background:#ede9fe; color:#6366f1; }
+.qr-panel, .card-panel { display:none; }
+.qr-panel.show, .card-panel.show { display:block; }
+.qr-box { width:200px; height:200px; margin:0 auto 1rem; border:2px solid #e5e7eb; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#f8fafc; flex-direction:column; gap:.5rem; }
+.qr-pixel { display:grid; grid-template-columns:repeat(9,16px); gap:2px; }
+.qr-cell { width:16px; height:16px; border-radius:2px; }
+.card-field { margin-bottom:.75rem; }
+.card-field label { display:block; font-size:.75rem; font-weight:600; color:#374151; margin-bottom:.3rem; }
+.card-field input { width:100%; padding:.6rem .85rem; border:1px solid #e5e7eb; border-radius:8px; font-size:.9rem; box-sizing:border-box; }
+.card-row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.pay-btn { width:100%; padding:.875rem; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:.5rem; }
+.pay-btn:hover { background:#4f46e5; }
+.pay-btn:disabled { background:#d1d5db; cursor:not-allowed; }
+.success-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; align-items:center; justify-content:center; }
+.success-overlay.show { display:flex; }
+.success-modal { background:#fff; border-radius:20px; padding:2rem; text-align:center; max-width:320px; width:90%; }
+.success-icon { font-size:3rem; margin-bottom:.75rem; }
+.success-modal h3 { margin:0 0 .5rem; font-size:1.1rem; font-weight:700; }
+.success-modal p { font-size:.85rem; color:#6b7280; margin:0 0 1.25rem; }
+</style>
+
+<div class="pay-wrap">
+  <div class="pay-card">
+    <div class="pay-header">
+      <h2>💳 ชำระเงิน</h2>
+      <p>เลือกวิธีการชำระเงินที่สะดวก</p>
+    </div>
+    <div class="pay-body">
+      <div class="pay-amount">
+        <div class="label">ยอดที่ต้องชำระ</div>
+        <div class="amount">฿{{ '%.0f'|format(amount) }}</div>
+        <div class="order-id">{{ order_id }}</div>
+      </div>
+      <div class="method-tabs">
+        <div class="method-tab active" onclick="setMethod('promptpay', this)">📱 PromptPay QR</div>
+        <div class="method-tab" onclick="setMethod('card', this)">💳 บัตรเครดิต</div>
+      </div>
+
+      <!-- PromptPay QR -->
+      <div class="qr-panel show" id="qr-panel">
+        <div class="qr-box">
+          <div id="qr-grid" class="qr-pixel"></div>
+        </div>
+        <p style="text-align:center;font-size:.8rem;color:#6b7280;margin-bottom:1rem;">สแกน QR ด้วยแอปธนาคารใดก็ได้<br><strong style="color:#111;">PromptPay: 0812345678</strong></p>
+        <button class="pay-btn" onclick="confirmPay('promptpay')">✅ ยืนยันการโอนเงินแล้ว</button>
+      </div>
+
+      <!-- Card -->
+      <div class="card-panel" id="card-panel">
+        <div class="card-field"><label>หมายเลขบัตร</label><input type="text" maxlength="19" placeholder="0000 0000 0000 0000" oninput="fmtCard(this)"></div>
+        <div class="card-row">
+          <div class="card-field"><label>วันหมดอายุ</label><input type="text" maxlength="5" placeholder="MM/YY" oninput="fmtExp(this)"></div>
+          <div class="card-field"><label>CVV</label><input type="password" maxlength="4" placeholder="•••"></div>
+        </div>
+        <div class="card-field"><label>ชื่อบนบัตร</label><input type="text" placeholder="FIRSTNAME LASTNAME"></div>
+        <button class="pay-btn" onclick="confirmPay('card')">💳 ชำระเงิน ฿{{ '%.0f'|format(amount) }}</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success overlay -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-modal">
+    <div class="success-icon">🎉</div>
+    <h3>ชำระเงินสำเร็จ!</h3>
+    <p>คำสั่งซื้อ {{ order_id }} ได้รับการยืนยันแล้ว</p>
+    <button class="pay-btn" onclick="window.location.href='/dashboard'">กลับหน้าหลัก</button>
+  </div>
+</div>
+
+<script>
+let currentMethod = 'promptpay';
+
+// Generate fake QR pattern
+function genQR() {
+  const grid = document.getElementById('qr-grid');
+  const pattern = [1,0,1,1,0,1,1,0,1, 1,0,0,0,1,0,0,0,1, 1,0,1,0,1,0,1,0,1, 0,1,0,1,0,1,0,1,0, 1,1,0,0,1,0,0,1,1, 0,1,0,1,0,1,0,1,0, 1,0,1,0,0,0,1,0,1, 1,0,0,0,1,0,0,0,1, 1,0,1,1,0,1,1,0,1];
+  grid.innerHTML = pattern.map(b => `<div class="qr-cell" style="background:${b?'#111':'#fff'}"></div>`).join('');
+}
+genQR();
+
+function setMethod(method, tab) {
+  currentMethod = method;
+  document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('qr-panel').classList.toggle('show', method === 'promptpay');
+  document.getElementById('card-panel').classList.toggle('show', method === 'card');
+}
+
+function fmtCard(inp) {
+  inp.value = inp.value.replace(/\D/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim();
+}
+function fmtExp(inp) {
+  let v = inp.value.replace(/\D/g,'');
+  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2,4);
+  inp.value = v;
+}
+
+async function confirmPay(method) {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'กำลังดำเนินการ...';
+  try {
+    const r = await fetch('/api/payment/confirm', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ order_id: '{{ order_id }}', method })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      document.getElementById('success-overlay').classList.add('show');
+    } else {
+      alert(d.message || 'เกิดข้อผิดพลาด');
+      btn.disabled = false; btn.textContent = method === 'card' ? '💳 ชำระเงิน' : '✅ ยืนยันการโอนเงินแล้ว';
+    }
+  } catch { btn.disabled = false; }
+}
+</script>
+{% endblock dashboard_content %}

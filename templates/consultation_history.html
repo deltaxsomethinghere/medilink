@@ -1,0 +1,267 @@
+{% extends "dashboard_base.html" %}
+{% set active_page = "history" %}
+{% block title %}ประวัติการรักษา | MediLink AI{% endblock %}
+{% block dashboard_content %}
+<style>
+  .filter-strip {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .filter-btn {
+    padding: .4rem .9rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: .78rem;
+    cursor: pointer;
+    background: #fff;
+    color: #374151;
+  }
+
+  .filter-btn.active {
+    background: #6366f1;
+    color: #fff;
+    border-color: #6366f1;
+  }
+
+  .timeline {
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #f3f4f6;
+  }
+
+  .tl-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    position: relative;
+  }
+
+  .tl-dot {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .dot-completed {
+    background: #dcfce7;
+  }
+
+  .dot-prescribed {
+    background: #dbeafe;
+  }
+
+  .dot-confirmed {
+    background: #e0f2fe;
+  }
+
+  .dot-accepted {
+    background: #fef9c3;
+  }
+
+  .dot-requested {
+    background: #f3f4f6;
+  }
+
+  .tl-card {
+    flex: 1;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+
+  .tl-card:hover {
+    border-color: #6366f1;
+  }
+
+  .tl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: .5rem;
+  }
+
+  .tl-id {
+    font-size: .72rem;
+    color: #9ca3af;
+  }
+
+  .tl-symptoms {
+    font-size: .9rem;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: .3rem;
+  }
+
+  .tl-meta {
+    display: flex;
+    gap: .75rem;
+    font-size: .75rem;
+    color: #6b7280;
+    flex-wrap: wrap;
+  }
+
+  .tl-expand {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: .75rem;
+    margin-top: .75rem;
+    font-size: .82rem;
+    display: none;
+  }
+
+  .tl-expand.open {
+    display: block;
+  }
+
+  .tl-expand-row {
+    display: flex;
+    gap: .5rem;
+    padding: .3rem 0;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .tl-expand-row:last-child {
+    border: none;
+  }
+
+  .tl-expand-label {
+    font-weight: 600;
+    color: #374151;
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+
+  .status-chip {
+    display: inline-block;
+    font-size: .68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+
+  .chip-COMPLETED {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .chip-PRESCRIBED {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .chip-CONFIRMED {
+    background: #e0f2fe;
+    color: #0c4a6e;
+  }
+
+  .chip-ACCEPTED {
+    background: #fef9c3;
+    color: #854d0e;
+  }
+
+  .chip-REQUESTED {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #9ca3af;
+  }
+</style>
+
+<section class="dashboard-heading">
+  <div><span class="clinical-kicker">Medical records</span>
+    <h1>ประวัติการรักษา</h1>
+    <p>{{ consultations|length }} เคสทั้งหมด</p>
+  </div>
+</section>
+
+<div class="filter-strip">
+  <button class="filter-btn active" onclick="filterCons('ALL', this)">ทั้งหมด</button>
+  <button class="filter-btn" onclick="filterCons('COMPLETED', this)">เสร็จสิ้น</button>
+  <button class="filter-btn" onclick="filterCons('PRESCRIBED', this)">รอยืนยันยา</button>
+  <button class="filter-btn" onclick="filterCons('ACCEPTED', this)">กำลังดูแล</button>
+  <button class="filter-btn" onclick="filterCons('REQUESTED', this)">รอแพทย์</button>
+</div>
+
+{% if consultations %}
+<div class="timeline" id="timeline">
+  {% for c in consultations %}
+  <div class="tl-item" data-status="{{ c.status }}">
+    <div class="tl-dot dot-{{ c.status|lower }}">
+      {% if c.status == 'COMPLETED' %}✅{% elif c.status == 'PRESCRIBED' %}💊{% elif c.status == 'CONFIRMED' %}✔️{% elif
+      c.status == 'ACCEPTED' %}🩺{% else %}📋{% endif %}
+    </div>
+    <div class="tl-card" onclick="toggleExpand(this)">
+      <div class="tl-header">
+        <span class="status-chip chip-{{ c.status }}">{{ c.status }}</span>
+        <span class="tl-id">{{ c.id }} · {{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+      </div>
+      <div class="tl-symptoms">{{ c.symptoms[:100] }}{% if c.symptoms|length > 100 %}...{% endif %}</div>
+      <div class="tl-meta">
+        {% if c.doctor %}<span>🩺 {{ c.doctor.name }}</span>{% endif %}
+        {% if c.medicine %}<span>💊 {{ c.medicine.name }}</span>{% endif %}
+        {% if c.pharmacy %}<span>🏪 {{ c.pharmacy.name }}</span>{% endif %}
+        {% if c.med_price %}<span>฿{{ '%.0f'|format(c.med_price) }}</span>{% endif %}
+      </div>
+      <div class="tl-expand">
+        {% if c.diagnosis %}<div class="tl-expand-row"><span class="tl-expand-label">การวินิจฉัย</span><span>{{
+            c.diagnosis }}</span></div>{% endif %}
+        {% if c.medicine %}<div class="tl-expand-row"><span class="tl-expand-label">ยาที่สั่ง</span><span>{{
+            c.medicine.name }} {{ c.medicine.dosage or '' }} — {{ c.medicine.instruction or '' }}</span></div>{% endif
+        %}
+        {% if c.delivery_type %}<div class="tl-expand-row"><span class="tl-expand-label">วิธีรับยา</span><span>{{
+            'รับที่ร้าน' if c.delivery_type == 'pickup' else 'จัดส่ง' }}</span></div>{% endif %}
+        {% if c.prescribed_at %}<div class="tl-expand-row"><span class="tl-expand-label">สั่งยาเมื่อ</span><span>{{
+            c.prescribed_at.strftime('%d/%m/%Y %H:%M') }}</span></div>{% endif %}
+        {% if c.image_url %}<div class="tl-expand-row"><span class="tl-expand-label">รูปภาพ</span><a
+            href="{{ c.image_url }}" target="_blank" style="color:#6366f1;">ดูรูป</a></div>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div style="font-size:2rem;margin-bottom:.5rem;">📋</div>
+  <div>ยังไม่มีประวัติการรักษา</div><a href="/dashboard" class="primary-button"
+    style="margin-top:1rem;display:inline-block;">กลับหน้าหลัก</a>
+</div>
+{% endif %}
+
+<script>
+  function toggleExpand(card) {
+    const exp = card.querySelector('.tl-expand');
+    if (exp) exp.classList.toggle('open');
+  }
+  function filterCons(status, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tl-item').forEach(el => {
+      el.style.display = (status === 'ALL' || el.dataset.status === status) ? 'flex' : 'none';
+    });
+  }
+</script>
+{% endblock dashboard_content %}

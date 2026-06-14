@@ -1,0 +1,9 @@
+.env
+*.db
+__pycache__/
+*.pyc
+.venv/
+server.stdout.log
+server.stderr.log
+static/uploads/*
+!static/uploads/.gitkeep

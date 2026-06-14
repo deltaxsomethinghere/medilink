@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}ข้อกำหนดการใช้งาน | MediLink AI{% endblock %}
+{% block body %}
+<style>
+  .tos-wrap { min-height:100vh; background:#f8fafc; display:flex; align-items:flex-start; justify-content:center; padding:2rem 1rem; }
+  .tos-card { background:#fff; border-radius:16px; border:1px solid #e5e7eb; max-width:720px; width:100%; overflow:hidden; }
+  .tos-hero { background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%); padding:2rem 2.5rem; color:#fff; }
+  .tos-hero h1 { font-size:1.5rem; font-weight:700; margin:0 0 .4rem; }
+  .tos-hero p  { font-size:.9rem; opacity:.85; margin:0; }
+  .tos-body { padding:2rem 2.5rem; }
+  .tos-section { margin-bottom:1.5rem; }
+  .tos-section h2 { font-size:.95rem; font-weight:700; color:#374151; margin:0 0 .6rem; display:flex; align-items:center; gap:.5rem; }
+  .tos-section p, .tos-section li { font-size:.875rem; color:#6b7280; line-height:1.7; margin:0 0 .35rem; }
+  .tos-section ul { padding-left:1.25rem; margin:0; }
+  .highlight-box { background:#fef3c7; border:1px solid #fcd34d; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1.5rem; }
+  .highlight-box p { font-size:.85rem; color:#92400e; margin:0; line-height:1.6; }
+  .highlight-box strong { color:#78350f; }
+  .danger-box { background:#fef2f2; border:1px solid #fca5a5; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1.5rem; }
+  .danger-box p { font-size:.85rem; color:#991b1b; margin:0; line-height:1.6; }
+  .consent-checks { border:1px solid #e5e7eb; border-radius:10px; padding:1.25rem; margin-bottom:1.5rem; background:#f9fafb; }
+  .check-item { display:flex; align-items:flex-start; gap:.75rem; margin-bottom:.85rem; cursor:pointer; }
+  .check-item:last-child { margin-bottom:0; }
+  .check-item input[type=checkbox] { width:18px; height:18px; margin-top:2px; flex-shrink:0; accent-color:#6366f1; cursor:pointer; }
+  .check-item span { font-size:.875rem; color:#374151; line-height:1.55; }
+  .check-item span strong { color:#111827; }
+  .accept-btn { width:100%; padding:.875rem; background:#6366f1; color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; transition:background .2s; }
+  .accept-btn:hover:not(:disabled) { background:#4f46e5; }
+  .accept-btn:disabled { background:#d1d5db; cursor:not-allowed; }
+  .version-note { text-align:center; font-size:.78rem; color:#9ca3af; margin-top:1rem; }
+  .divider { border:none; border-top:1px solid #f3f4f6; margin:1.5rem 0; }
+</style>
+
+<div class="tos-wrap">
+  <div class="tos-card">
+    <div class="tos-hero">
+      <div style="font-size:2rem;margin-bottom:.5rem;">⚕️</div>
+      <h1>ข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัว</h1>
+      <p>MediLink AI — กรุณาอ่านและยอมรับก่อนเริ่มใช้งาน</p>
+    </div>
+
+    <div class="tos-body">
+
+      <div class="highlight-box">
+        <p><strong>⚠️ ข้อควรทราบที่สำคัญ:</strong> MediLink AI เป็นแพลตฟอร์มสุขภาพดิจิทัลที่ให้บริการข้อมูลและเชื่อมต่อกับบุคลากรทางการแพทย์ <strong>ไม่ใช่การรักษาพยาบาลฉุกเฉิน</strong> หากมีอาการฉุกเฉินให้โทร <strong>1669</strong> ทันที</p>
+      </div>
+
+      <div class="tos-section">
+        <h2>📋 ขอบเขตการให้บริการ</h2>
+        <ul>
+          <li>เชื่อมต่อผู้ใช้กับแพทย์ที่ได้รับใบอนุญาตเพื่อการปรึกษาเบื้องต้น</li>
+          <li>AI ช่วยสรุปอาการและแนะนำข้อมูลเบื้องต้น ไม่ใช่การวินิจฉัยโรค</li>
+          <li>ค้นหาและสั่งซื้อยาผ่านร้านขายยาที่ได้รับการรับรอง</li>
+          <li>ติดตามประวัติสุขภาพและการใช้ยาของตนเอง</li>
+        </ul>
+      </div>
+
+      <div class="tos-section">
+        <h2>🤖 เกี่ยวกับ AI ในระบบ</h2>
+        <ul>
+          <li>AI วิเคราะห์อาการและให้ข้อมูลเบื้องต้นเท่านั้น <strong>ไม่มีผลทางกฎหมายในฐานะการวินิจฉัยโรค</strong></li>
+          <li>AI ไม่ใช่แพทย์และไม่มีใบประกอบวิชาชีพเวชกรรม</li>
+          <li>ความแม่นยำของ AI อยู่ที่ประมาณ 70-85% ขึ้นอยู่กับความสมบูรณ์ของข้อมูลที่ระบุ</li>
+          <li>ผลลัพธ์จาก AI ไม่ควรใช้แทนการพบแพทย์สำหรับอาการที่ร้ายแรงหรือเรื้อรัง</li>
+        </ul>
+      </div>
+
+      <div class="tos-section">
+        <h2>🔒 นโยบายความเป็นส่วนตัว (PDPA)</h2>
+        <ul>
+          <li>ข้อมูลสุขภาพของคุณถูกเก็บรักษาด้วยการเข้ารหัสและไม่เปิดเผยต่อบุคคลที่สาม</li>
+          <li>ข้อมูลถูกส่งให้แพทย์และร้านยาเฉพาะในเคสที่คุณเปิดเอง</li>
+          <li>คุณสามารถขอลบข้อมูลได้ตลอดเวลาผ่านหน้า "ตั้งค่าบัญชี"</li>
+          <li>ข้อมูลที่ไม่ระบุตัวตนอาจถูกใช้เพื่อพัฒนาคุณภาพระบบ AI</li>
+        </ul>
+      </div>
+
+      <div class="tos-section">
+        <h2>⚖️ ข้อจำกัดความรับผิดชอบ</h2>
+        <ul>
+          <li>MediLink AI ไม่รับผิดชอบต่อผลลัพธ์ที่เกิดจากการตัดสินใจโดยอิงข้อมูลจาก AI เพียงอย่างเดียว</li>
+          <li>ผู้ใช้ต้องมีอายุ 18 ปีขึ้นไป หรือได้รับความยินยอมจากผู้ปกครอง</li>
+          <li>ห้ามใช้แพลตฟอร์มนี้ในกรณีฉุกเฉินทางการแพทย์</li>
+        </ul>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="consent-checks" id="consent-form">
+        <div class="check-item">
+          <input type="checkbox" id="c1" onchange="updateBtn()">
+          <label for="c1"><span>ฉันได้อ่านและยอมรับ <strong>ข้อกำหนดการใช้งาน</strong> ของ MediLink AI</span></label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="c2" onchange="updateBtn()">
+          <label for="c2"><span>ฉันยินยอมให้ MediLink AI เก็บและประมวลผลข้อมูลสุขภาพของฉันตาม <strong>นโยบาย PDPA</strong></span></label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="c3" onchange="updateBtn()">
+          <label for="c3"><span>ฉันเข้าใจว่า <strong>AI ในระบบไม่ใช่แพทย์</strong> และผลลัพธ์ไม่ใช่การวินิจฉัยโรคอย่างเป็นทางการ</span></label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="c4" onchange="updateBtn()">
+          <label for="c4"><span>ฉันมีอายุ 18 ปีขึ้นไป หรือได้รับความยินยอมจากผู้ปกครองแล้ว</span></label>
+        </div>
+      </div>
+
+      <button class="accept-btn" id="accept-btn" disabled onclick="acceptTos()">
+        ✅ ยอมรับและเริ่มใช้งาน MediLink AI
+      </button>
+      <p class="version-note">ข้อกำหนดฉบับนี้มีผลบังคับใช้ตั้งแต่ 1 มิถุนายน 2568 | เวอร์ชัน 1.0</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function updateBtn() {
+  const all = ['c1','c2','c3','c4'].every(id => document.getElementById(id).checked);
+  document.getElementById('accept-btn').disabled = !all;
+}
+
+async function acceptTos() {
+  const btn = document.getElementById('accept-btn');
+  btn.disabled = true;
+  btn.textContent = 'กำลังบันทึก...';
+  try {
+    const r = await fetch('/api/consent/tos', { method: 'POST' });
+    const d = await r.json();
+    if (d.ok) {
+      window.location.href = '{{ redirect_to|default("/dashboard") }}';
+    } else {
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      btn.disabled = false;
+      btn.textContent = '✅ ยอมรับและเริ่มใช้งาน MediLink AI';
+    }
+  } catch(e) {
+    alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    btn.disabled = false;
+    btn.textContent = '✅ ยอมรับและเริ่มใช้งาน MediLink AI';
+  }
+}
+</script>
+{% endblock %}
